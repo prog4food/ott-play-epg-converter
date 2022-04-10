@@ -1,0 +1,6 @@
+[
+	{"id":"iptvx-one", "file":"iptvx-one.xml", "order":1},
+	{"id":"epg1", "file":"epg1.xml", "order":2},
+	{"id":"edem", "file":"edem.xml", "order":3},
+	{"id":"filmax", "file":"filmax.xml", "order":4}
+]
