@@ -37,6 +37,7 @@ func ProcessDB(db *sql.DB, provName string, provIdHash uint32) error {
     LEFT JOIN h_ch_ids ON epg.data.h_ch_id = h_ch_ids.h
     LEFT JOIN epg.h_title ON epg.data.h_title = epg.h_title.h
     LEFT JOIN epg.h_desc ON epg.data.h_desc = epg.h_desc.h
+    WHERE h_ch_ids.data IS NOT NULL
     ORDER BY epg.data.h_ch_id, epg.data.t_start
     `)
   if err != nil {
@@ -51,6 +52,7 @@ func ProcessDB(db *sql.DB, provName string, provIdHash uint32) error {
   var f bytes.Buffer
   f.Grow(2097152) // Buffer 2MB
   epg_rec_count := uint32(0)
+  epg_provider_files := 0
   for rows.Next() {
     // Reset fields
     tmp_Record.Name   = ""
@@ -63,6 +65,7 @@ func ProcessDB(db *sql.DB, provName string, provIdHash uint32) error {
     // Channel changed?
     if current_channel != prev_channel {
       SyncFile(provEpgPath, prev_channel, epg_rec_count, &f)
+      epg_provider_files++
       epg_rec_count = 0
       f.WriteString("{\"epg_data\":[\n");
     } else {
@@ -77,6 +80,9 @@ func ProcessDB(db *sql.DB, provName string, provIdHash uint32) error {
     prev_channel = current_channel
   }
   SyncFile(provEpgPath, prev_channel, epg_rec_count, &f)
+  epg_provider_files++
+  
+  log.Info().Msgf("[%s] files count: %d", provName, epg_provider_files)
   
   err = rows.Err(); if err != nil {
     return err
