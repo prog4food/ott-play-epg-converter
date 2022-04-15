@@ -1,0 +1,26 @@
+on:
+  release:
+    types: [created]
+
+jobs:
+  releases-matrix:
+    name: Release Go Binary
+    runs-on: ubuntu-xenial
+    strategy:
+      matrix:
+        # build: linux/386, linux/amd64, linux/arm64, windows/386, windows/amd64
+        goos: [linux, windows]
+        goarch: ["386", amd64, arm64]
+        exclude:
+          - goarch: arm64
+            goos: windows
+    steps:
+    - uses: actions/checkout@v2
+    - uses: wangyoucao577/go-release-action@v1.26
+      with:
+        github_token: ${{ secrets.GITHUB_TOKEN }}
+        goos: ${{ matrix.goos }}
+        goarch: ${{ matrix.goarch }}
+        ldflags: "-s -w"
+        binary_name: "ott-play-epg-converter"
+        extra_files: LICENSE README.md
