@@ -2,6 +2,9 @@ on:
   release:
     types: [created]
 
+env:
+  CGO_ENABLED: 1
+
 jobs:
   releases-matrix:
     name: Release Go Binary
@@ -23,4 +26,4 @@ jobs:
         goarch: ${{ matrix.goarch }}
         ldflags: "-s -w"
         binary_name: "ott-play-epg-converter"
-        extra_files: LICENSE README.md
+        extra_files: README.md
