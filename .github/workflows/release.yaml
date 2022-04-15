@@ -5,7 +5,7 @@ on:
 jobs:
   releases-matrix:
     name: Release Go Binary
-    runs-on: ubuntu-xenial
+    runs-on: ubuntu-bionic
     strategy:
       matrix:
         # build: linux/386, linux/amd64, linux/arm64, windows/386, windows/amd64
