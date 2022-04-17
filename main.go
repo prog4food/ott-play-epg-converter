@@ -10,7 +10,7 @@ import (
 )
 
 func printHelp() {
-  log.Error().Msg(`ott-play-FOSS EPG parser
+  log.Error().Msg(`EPG converter for OTT-play FOSS
   Command line: <app> [-l] [-e|-c OPTS]
   Main options:
     -e <opts>  parse epg file from arguments
@@ -24,30 +24,30 @@ func printHelp() {
     prov_id    provider id
     prov_order provider selection order (for auto search, default 50)
   
-  -c prov_config[,prov_name]
-    prov_config  profider config file in json format
+  -c config_file[,prov_name]
+    config_file  provider config file in json format
     prov_name    select only one provider from config
     
   Sample:
     Encode epg from "epg.xml" file:
-      ott-play-epg-preparator -e epg.xml,blabla
+      ott-play-epg-converter -e epg.xml,blabla
     Encode "bestprov" epg from "conf1.json" file:
-      ott-play-epg-preparator -c conf1.json,bestprov
+      ott-play-epg-converter -c conf1.json,bestprov
     Encode ALL epg from "provs.json" + make channel list:
-      ott-play-epg-preparator -l -c provs.json
+      ott-play-epg-converter -l -c provs.json
     Encode 4(or more) gzipped EPG and generate channel list at end:
-      zcat epgone.xml.gz | ott-play-epg-preparator -e -,myfirstprov
-      curl --silent http://prov.host/epg.xml.gz | gzip -d -c - | ott-play-epg-preparator -e -,otherprov1,49
-      curl --silent --compressed http://prov.host/epg.xml | ott-play-epg-preparator -e -,otherprov2,51
+      zcat epgone.xml.gz | ott-play-epg-converter -e -,myfirstprov
+      curl --silent http://prov.host/epg.xml.gz | gzip -d -c - | ott-play-epg-converter -e -,otherprov1,49
+      curl --silent --compressed http://prov.host/epg.xml | ott-play-epg-converter -e -,otherprov2,51
       ...
-      zcat epglast.xml.gz | ott-play-epg-preparator -l -e -,islastprov,99`)
+      zcat epglast.xml.gz | ott-play-epg-converter -l -e -,islastprov,99`)
 }
 
 func main() {
   tstart := time.Now()
   //doXml := false; doList := false
   log.Logger = log.Output(zerolog.ConsoleWriter{Out: os.Stdout, TimeFormat: "2006-01-02T15:04:05", NoColor: true})
-  log.Info().Msg("EPG compiler for OTT-play FOSS v0.3.3")
+  log.Info().Msg("EPG converter for OTT-play FOSS v0.3.3")
   log.Info().Msg("  git@prog4food (c) 2o22")
   if len(os.Args) == 1 {
   // No args
