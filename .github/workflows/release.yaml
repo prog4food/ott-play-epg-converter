@@ -14,7 +14,9 @@ jobs:
         if: startsWith(github.ref, 'refs/tags/')
         with:
           files: |
-            build/ott-play-epg-converter_linux_amd64.bin.gz
-            build/ott-play-epg-converter_linux_arm64.bin.gz
-            build/ott-play-epg-converter_windows_386.exe.gz
-            build/ott-play-epg-converter_windows_amd64.exe.gz
+            build/ott-play-epg-converter_linux_arm64.gz
+            build/ott-play-epg-converter_linux_armv7a.gz
+            build/ott-play-epg-converter_linux_armv7a-hf.gz
+            build/ott-play-epg-converter_linux_x64.gz
+            build/ott-play-epg-converter_windows_x64.exe.gz
+            build/ott-play-epg-converter_windows_x86.exe.gz
