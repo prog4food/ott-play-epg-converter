@@ -39,7 +39,7 @@ func main() {
   tstart := time.Now()
   //doXml := false; doList := false
   log.Logger = log.Output(zerolog.ConsoleWriter{Out: os.Stdout, TimeFormat: "2006-01-02T15:04:05", NoColor: true})
-  log.Info().Msg("EPG converter for OTT-play FOSS v0.4.0")
+  log.Info().Msg("EPG converter for OTT-play FOSS v0.4.2")
   log.Info().Msg("  git@prog4food (c) 2o22")
   if len(os.Args) == 1 {
   // No args

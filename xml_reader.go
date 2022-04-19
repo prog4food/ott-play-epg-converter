@@ -50,11 +50,10 @@ func processXml(db *sql.DB, provData *arg_reader.ProvRecord) error {
   } else if len(provData.Urls) > 0 {
     // Reader: HTTP
     log.Info().Msgf("[%s] Download EPG from: %s", provData.Id, provData.Urls[0])
-    resp, err := http.Get(provData.Urls[0])
-      if err != nil {
-        log.Err(err).Send()
-        return err
-      }
+    resp, err := http.Get(provData.Urls[0]); if err != nil {
+      log.Err(err).Send()
+      return err
+    }
     defer resp.Body.Close()
     if resp.StatusCode != 200 {
       log.Error().Msgf("[%s] Download failed. %d:%s", provData.Id, resp.StatusCode, resp.Status)
