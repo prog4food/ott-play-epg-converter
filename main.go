@@ -11,43 +11,35 @@ import (
 
 func printHelp() {
   log.Error().Msg(`EPG converter for OTT-play FOSS
-  Command line: <app> [-l] [-e|-c OPTS]
+  Command line: <app> [-l] [-c OPTS]
   Main options:
-    -e <opts>  parse epg file from arguments
     -с <opts>  parse epg files from json config
     -l         generate channel list
-  NOTE: The character "," is a separator in the options
-    
-  -e xml_file|-,prov_id[,prov_order]
-    xml_file   read data from specified <xml_file>
-    -          read data from StdIn pipe input
-    prov_id    provider id
-    prov_order provider selection order (for auto search, default 50)
-  
+  NOTE: The character "," is a separator in the <opts>
+ 
   -c config_file[,prov_name]
     config_file  provider config file in json format
     prov_name    select only one provider from config
     
   Sample:
-    Encode epg from "epg.xml" file:
-      ott-play-epg-converter -e epg.xml,blabla
-    Encode "bestprov" epg from "conf1.json" file:
-      ott-play-epg-converter -c conf1.json,bestprov
+    Encode "it999" epg from "sample_config.json" file:
+      ott-play-epg-converter -c sample_config.json,it999
     Encode ALL epg from "provs.json" + make channel list:
       ott-play-epg-converter -l -c provs.json
-    Encode 4(or more) gzipped EPG and generate channel list at end:
-      zcat epgone.xml.gz | ott-play-epg-converter -e -,myfirstprov
-      curl --silent http://prov.host/epg.xml.gz | gzip -d -c - | ott-play-epg-converter -e -,otherprov1,49
-      curl --silent --compressed http://prov.host/epg.xml | ott-play-epg-converter -e -,otherprov2,51
+    More examples (and make channel list at end):
+      cat epgone.xml | ott-play-epg-converter -c sample_config.json,intest
+      zcat epgone.xml.gz | ott-play-epg-converter -c sample_config.json,intest
+      curl --silent http://prov.host/epg.xml.gz | gzip -d -c - | ott-play-epg-converter -c sample_config.json,intest
+      curl --silent --compressed http://prov.host/epg.xml | ott-play-epg-converter -c sample_config.json,intest
       ...
-      zcat epglast.xml.gz | ott-play-epg-converter -l -e -,islastprov,99`)
+      ott-play-epg-converter -l -c sample_config.json,it999`)
 }
 
 func main() {
   tstart := time.Now()
   //doXml := false; doList := false
   log.Logger = log.Output(zerolog.ConsoleWriter{Out: os.Stdout, TimeFormat: "2006-01-02T15:04:05", NoColor: true})
-  log.Info().Msg("EPG converter for OTT-play FOSS v0.3.3")
+  log.Info().Msg("EPG converter for OTT-play FOSS v0.4.0")
   log.Info().Msg("  git@prog4food (c) 2o22")
   if len(os.Args) == 1 {
   // No args

@@ -3,33 +3,79 @@ package main
 import (
   "time"
   "database/sql"
+  "compress/gzip"
   _ "github.com/mattn/go-sqlite3"
   "github.com/rs/zerolog/log"
   "os"
   "bufio"
+  "errors"
+  "net/http"
   "encoding/xml"
   "ott-play-epg-converter/import/robbiet480/xmltv"
   "ott-play-epg-converter/lib/epg-jsoner"
   "ott-play-epg-converter/lib/arg-reader"
 )
 
+func isGZip(in_reader *bufio.Reader) (*gzip.Reader, error) {
+  is_gzip, err := in_reader.Peek(2); if err != nil {
+    return nil, err
+  }
+  if is_gzip[0] == 0x1f && is_gzip[1] == 0x8b {
+    return gzip.NewReader(in_reader)
+  }
+  return nil, nil
+}
+
+
 func processXml(db *sql.DB, provData *arg_reader.ProvRecord) error {
   metric_start := time.Now()
   var d *xml.Decoder
+  var in_reader *bufio.Reader
   
-  if provData.File != "-" {
+  if provData.File != nil && *provData.File == "-" {
+    // Reader: StdIn
+    log.Info().Msgf("[%s] Read EPG from: StdIn", provData.Id)
+    in_reader = bufio.NewReader(os.Stdin)
+  } else if provData.File != nil {
+
     // Reader: File
-    xmlFile, err := os.Open(provData.File); if err != nil {
+    log.Info().Msgf("[%s] Read EPG from: %s", provData.Id, *provData.File)
+    xmlFile, err := os.Open(*provData.File); if err != nil {
       log.Err(err).Send()
       return err
     }
-    log.Info().Msgf("[%s] Read EPG from: %s", provData.Id, provData.File)
-    defer xmlFile.Close()   
-    d = xml.NewDecoder(xmlFile)
+    defer xmlFile.Close()
+    in_reader = bufio.NewReader(xmlFile)
+
+  } else if len(provData.Urls) > 0 {
+    // Reader: HTTP
+    log.Info().Msgf("[%s] Download EPG from: %s", provData.Id, provData.Urls[0])
+    resp, err := http.Get(provData.Urls[0])
+      if err != nil {
+        log.Err(err).Send()
+        return err
+      }
+    defer resp.Body.Close()
+    if resp.StatusCode != 200 {
+      log.Error().Msgf("[%s] Download failed. %d:%s", provData.Id, resp.StatusCode, resp.Status)
+      return errors.New("download failed")      
+    }
+    in_reader = bufio.NewReader(resp.Body)
   } else {
-    // Reader: StdIn
-    log.Info().Msgf("[%s] Read EPG from: StdIn", provData.Id)
-    in_reader := bufio.NewReader(os.Stdin)
+    log.Error().Msgf("[%s] provider has no eligible sources", provData.Id)
+    return errors.New("has no eligible sources")
+  }
+
+  // Check for GZip header
+  in_is_gzip, err := isGZip(in_reader); if err != nil {
+    log.Err(err).Send()
+    return err
+  }
+  if in_is_gzip != nil {
+    log.Info().Msgf("[%s] input is gzipped", provData.Id)
+    defer in_is_gzip.Close()
+    d = xml.NewDecoder(in_is_gzip)
+  } else {
     d = xml.NewDecoder(in_reader)
   }
 
@@ -110,7 +156,7 @@ func processXml(db *sql.DB, provData *arg_reader.ProvRecord) error {
     log.Err(err).Send()
 	}
   FinallyEPG(db)
-  log.Info().Msgf("[%s] Json files is ready %f", provData.Id, time.Since(metric_start).Seconds())
+  log.Info().Msgf("[%s] json files is ready %f", provData.Id, time.Since(metric_start).Seconds())
   //if _, err := db.Exec("DELETE FROM epg_data; DELETE FROM h_epg_title; DELETE FROM h_epg_desc; VACUUM;"); err != nil {
   //  log.Err(err).Send()
   //}
