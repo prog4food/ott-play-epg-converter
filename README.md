@@ -19,9 +19,9 @@
     
   -e xml_file|-,prov_id[,prov_order]
     xml_file   читать данные из файла <xml_file>
-    -          читатать данные из потока stdin
+    -          читать данные из потока stdin
     prov_id    идентификатор провайдера
-    prov_order порядок сортировки провайдера (исползуется в приске каналов, по умолчанию 50)
+    prov_order порядок сортировки провайдера (используется в поиске каналов, по умолчанию 50)
   
   -c config_file[,prov_name]
     config_file  файл со списком для обработки
@@ -34,7 +34,7 @@
 ### Создать EPG для провайдера `bestprov` из конфиг файла `conf1.json`:
 `ott-play-epg-converter -c conf1.json,bestprov`
 ### Создать EPG для `всех` провайдеров из конфиг файла `conf1.json`:
-А также создать список каналов для комопнента **ott-play-epg-logic**\
+А также создать список каналов для компонента **ott-play-epg-logic**\
 `ott-play-epg-converter -l -c provs.json`
 ### Создать EPG для провайдера `blabla2` напрямую с сайта из gz архива:
 `curl --silent http://prov.host/epg.xml.gz | gzip -d -c - | ott-play-epg-converter -e -,blabla2`
