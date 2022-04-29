@@ -7,14 +7,16 @@ import (
     "github.com/rs/zerolog/log"
     "ott-play-epg-converter/lib/arg-reader"
     "ott-play-epg-converter/lib/string-hashes"
+    "ott-play-epg-converter/lib/prov-meta"
 )
+
+const app_ver = "EPG converter for OTT-play FOSS v0.6.1"
 
 func printHelp() {
   log.Error().Msg(`EPG converter for OTT-play FOSS
-  Command line: <app> [-l] [-c OPTS]
+  Command line: <app> [-c OPTS]
   Main options:
     -с <opts>  parse epg files from json config
-    -l         generate channel list
   NOTE: The character "," is a separator in the <opts>
  
   -c config_file[,prov_name]
@@ -24,22 +26,22 @@ func printHelp() {
   Sample:
     Encode "it999" epg from "sample_config.json" file:
       ott-play-epg-converter -c sample_config.json,it999
-    Encode ALL epg from "provs.json" + make channel list:
-      ott-play-epg-converter -l -c provs.json
-    More examples (and make channel list at end):
+    Encode ALL epg from "provs.json":
+      ott-play-epg-converter -c provs.json
+    More examples:
       cat epgone.xml | ott-play-epg-converter -c sample_config.json,intest
       zcat epgone.xml.gz | ott-play-epg-converter -c sample_config.json,intest
       curl --silent http://prov.host/epg.xml.gz | gzip -d -c - | ott-play-epg-converter -c sample_config.json,intest
       curl --silent --compressed http://prov.host/epg.xml | ott-play-epg-converter -c sample_config.json,intest
       ...
-      ott-play-epg-converter -l -c sample_config.json,it999`)
+      ott-play-epg-converter -c sample_config.json,it999`)
 }
 
 func main() {
   tstart := time.Now()
   //doXml := false; doList := false
   log.Logger = log.Output(zerolog.ConsoleWriter{Out: os.Stdout, TimeFormat: "2006-01-02T15:04:05", NoColor: true})
-  log.Info().Msg("EPG converter for OTT-play FOSS v0.4.2")
+  log.Info().Msg(app_ver)
   log.Info().Msg("  git@prog4food (c) 2o22")
   if len(os.Args) == 1 {
   // No args
@@ -60,6 +62,9 @@ func main() {
   `); err != nil {
     log.Error().Err(err).Send()
   }*/
+  
+  // Загрузка общего мета-списка провайдеров
+  prov_meta.Load()
  
   // Processing EPG XMLs
   provConf := arg_reader.AppConfig.EpgSources
@@ -71,10 +76,11 @@ func main() {
     // Parse XML
     processXml(db, provConf[i])
   }
+  // Сохранение общего мета-списка провайдеров
+  prov_meta.Save()
 
   if arg_reader.AppConfig.MakeList {
     log.Info().Msg("Creating channel map")
-    
   }
   log.Info().Msgf("Total Execution time: %f", time.Since(tstart).Seconds())
 }

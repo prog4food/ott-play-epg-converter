@@ -51,6 +51,7 @@ func SeedDB(dbname string) *sql.DB {
   return db
 }
 
+// Создание чистой внешней epg db и ее подключение
 func InitEPG(maindb *sql.DB) {
   var err error
   if _, err = os.Stat("epgcache.tmp"); err == nil {
@@ -63,21 +64,28 @@ func InitEPG(maindb *sql.DB) {
   }
   // Seed EPG database
   if _, err = maindb.Exec(`
-  PRAGMA foreign_keys = off;
-  BEGIN TRANSACTION;
-  -- Таблица: epg.data
-  CREATE TABLE epg.data (h_prov_id INTEGER NOT NULL, h_ch_id INTEGER NOT NULL, h_title BIGINT NOT NULL, h_desc BIGINT, t_start BIGINT NOT NULL, t_stop BIGINT NOT NULL, PRIMARY KEY (h_prov_id, h_ch_id, t_start, t_stop) ON CONFLICT REPLACE);
-  -- Таблица: epg.h_desc
-  CREATE TABLE epg.h_desc (h BIGINT PRIMARY KEY ON CONFLICT IGNORE NOT NULL, data STRING);
-  -- Таблица: epg.h_title
-  CREATE TABLE epg.h_title (h BIGINT PRIMARY KEY ON CONFLICT IGNORE NOT NULL, data STRING);
-  COMMIT TRANSACTION;
-  PRAGMA foreign_keys = on;
+    PRAGMA foreign_keys = off;
+    BEGIN TRANSACTION;
+    -- Таблица: epg.data
+    DROP TABLE IF EXISTS epg.data;
+    CREATE TABLE epg.data (h_prov_id INTEGER NOT NULL, h_ch_id INTEGER NOT NULL, t_start BIGINT NOT NULL, t_stop BIGINT NOT NULL, h_title BIGINT NOT NULL, h_desc BIGINT, h_icon BIGINT, PRIMARY KEY (h_prov_id, h_ch_id, t_start, t_stop) ON CONFLICT REPLACE);
+    -- Таблица: epg.h_desc
+    DROP TABLE IF EXISTS epg.h_desc;
+    CREATE TABLE epg.h_desc (h BIGINT PRIMARY KEY ON CONFLICT IGNORE NOT NULL, data STRING);
+    -- Таблица: epg.h_icon
+    DROP TABLE IF EXISTS epg.h_icon;
+    CREATE TABLE epg.h_icon (h BIGINT PRIMARY KEY ON CONFLICT IGNORE NOT NULL, data STRING);
+    -- Таблица: epg.h_title
+    DROP TABLE IF EXISTS epg.h_title;
+    CREATE TABLE epg.h_title (h BIGINT PRIMARY KEY ON CONFLICT IGNORE NOT NULL, data STRING);
+    COMMIT TRANSACTION;
+    PRAGMA foreign_keys = on;
   `); err != nil {
     log.Panic().Err(err).Send()
   }
 }
 
+// Отключение внешней epg db
 func FinallyEPG(maindb *sql.DB) {
   var err error
   if _, err = maindb.Exec("DETACH epg;"); err != nil {
@@ -85,12 +93,7 @@ func FinallyEPG(maindb *sql.DB) {
   }
 }
 
-func CleanEPG(db *sql.DB) {
-  if _, err := db.Exec("DELETE FROM epg_data; DELETE FROM h_epg_title; DELETE FROM h_epg_desc; VACUUM;"); err != nil {
-    log.Panic().Err(err).Send()
-  }
-}
-
+// Компиляция SQL запроса
 func PreQuery(tx *sql.Tx, q string) *sql.Stmt {
   stmt, err := tx.Prepare(q)
   if err != nil {
@@ -105,11 +108,11 @@ func NewChannelCache(ch_data *sql.Stmt, ch_ids *sql.Stmt, ch_names *sql.Stmt, ch
   var err error
   
   // 2SQL: dedup Id канала
-  h_id   := string_hashes.HashSting32(ch.ID)
+  h_id   := string_hashes.HashSting32i(ch.ID)
   if _, err = ch_ids.Exec(h_id, ch.ID); err != nil {
     log.Err(err).Send()
 	}
-  // 2SQL: dedup Icon
+  // 2SQL: dedup Icon[0] (только первая)
   h_icon := uint64(0)
   if len(ch.Icons) > 0  {
     h_icon = string_hashes.HashSting64(ch.Icons[0].Source)
@@ -129,7 +132,7 @@ func NewChannelCache(ch_data *sql.Stmt, ch_ids *sql.Stmt, ch_names *sql.Stmt, ch
   }
   for i := 0; i < names_len; i++ {
     // 2SQL: dedup Название
-    h_name = string_hashes.HashSting64(ch.DisplayNames[i].Value)
+    h_name = string_hashes.HashSting64i(ch.DisplayNames[i].Value)
     if _, err = ch_names.Exec(h_name, ch.DisplayNames[i].Value); err != nil {
       log.Err(err).Send()
   		}
@@ -143,21 +146,22 @@ func NewChannelCache(ch_data *sql.Stmt, ch_ids *sql.Stmt, ch_names *sql.Stmt, ch
 
 // XML2SQL: Кешируем запись <programme>
 // Берем только Title[0] и Desc[0]
-func NewProgCache(epg_data *sql.Stmt, epg_title *sql.Stmt, epg_desc *sql.Stmt, pr *xmltv.Programme, prov *arg_reader.ProvRecord) {
+func NewProgCache(epg_data *sql.Stmt, epg_title *sql.Stmt, epg_desc *sql.Stmt, epg_icon *sql.Stmt, pr *xmltv.Programme, prov *arg_reader.ProvRecord) {
   var err error
   // Проверки
   if len(pr.Titles) == 0 || pr.Start == nil || pr.Stop == nil {
+    log.Warn().Msgf("[%s] bad programme record", pr.Channel)
     return
   }
   // Хеширование
-  h_ch_id := string_hashes.HashSting32(pr.Channel)
-  h_desc  := uint64(0)
-  // 2SQL: dedup Название
+  h_ch_id := string_hashes.HashSting32i(pr.Channel)
+  // 2SQL: dedup Название[0] (только первое)
   h_title := string_hashes.HashSting64(pr.Titles[0].Value)
   if _, err = epg_title.Exec(h_title, pr.Titles[0].Value); err != nil {
     log.Err(err).Send()
 	}
   // 2SQL: dedup Описание
+  h_desc  := uint64(0)
   if len(pr.Descriptions) > 0  {
     h_desc = string_hashes.HashSting64(pr.Descriptions[0].Value)
     if h_title != h_desc  {
@@ -166,11 +170,20 @@ func NewProgCache(epg_data *sql.Stmt, epg_title *sql.Stmt, epg_desc *sql.Stmt, p
         log.Err(err).Send()
     		}
     } else {
+      // Описание дублирует название, пропускаем
       h_desc = 0
     }
   }
+  // 2SQL: dedup Постер[0] (только первый)
+  h_icon := uint64(0)
+  if len(pr.Icons) > 0  {
+    h_icon = string_hashes.HashSting64(pr.Icons[0].Source)
+    if _, err = epg_icon.Exec(h_icon, pr.Icons[0].Source); err != nil {
+      log.Err(err).Send()
+  	  }
+  }
   // 2SQL: Связи
-  epg_data.Exec(prov.IdHash, h_ch_id, h_title, h_desc, pr.Start.Unix(), pr.Stop.Unix())
+  epg_data.Exec(prov.IdHash, h_ch_id, pr.Start.Unix(), pr.Stop.Unix(), h_title, h_desc, h_icon)
 }
 
 /*

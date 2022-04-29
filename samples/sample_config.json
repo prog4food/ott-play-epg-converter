@@ -2,10 +2,13 @@
 	{"id":"bench", "_file":"sample_it999.test", "urls": ["http://prog4food.altervista.org/sfiles/sample_it999.test"]},
 	{"id":"propg1", "file":"propg.xml.gz"},
 	{"id":"propg2", "file":"propg.xml"},
-	{"id":"intest", "file":"-"},
+	{"id":"intest", "file":"-","urls": ["https://iptvx.one/EPG"]},
 	{"id":"check404", "urls": ["http://prog4food.altervista.org/file404"]},
 	{"id":"check301", "urls": ["https://iptvx.one/EPG"]},
-	{"id":"it999", "_file":"it999.xml.gz", "order":1, "urls": ["https://epg.it999.ru/epg.xml.gz", "http://epg.it999.ru/epg.xml.gz"]},
+	{"id":"it999f", "file":"it999.xml.gz"},
+	{"id":"it999u", "order":1, "urls": ["https://epg.it999.ru/epg.xml.gz", "http://epg.it999.ru/epg.xml.gz"]},
 	{"id":"tv.team",  "urls": ["https://tv.team/tvteam.img.xml", "http://tv.team/tvteam.img.xml"]},
+	{"id":"filmax",  "urls": ["https://filmax-tv.ru/epg.xml.gz"]},
+  	{"id":"lightiptv", "urls": ["https://epg.lightiptv.cc/epg.xml.gz", "http://epg.lightiptv.cc/epg.xml.gz"] },
 	{"id":"iptvx.one", "urls": ["https://iptvx.site/epg.xml.gz", "http://iptvx.site/epg.xml.gz", "http://iptvx.one/EPG", "https://iptvx.one/EPG"] }
 ]

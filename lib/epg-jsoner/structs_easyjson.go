@@ -52,6 +52,16 @@ func easyjson6a975c40DecodeOttPlayEpgConverterLibEpgJsoner(in *jlexer.Lexer, out
 				}
 				*out.Descr = string(in.String())
 			}
+		case "icon":
+			if in.IsNull() {
+				in.Skip()
+				out.Icon = nil
+			} else {
+				if out.Icon == nil {
+					out.Icon = new(string)
+				}
+				*out.Icon = string(in.String())
+			}
 		default:
 			in.SkipRecursive()
 		}
@@ -89,6 +99,11 @@ func easyjson6a975c40EncodeOttPlayEpgConverterLibEpgJsoner(out *jwriter.Writer, 
 		} else {
 			out.String(string(*in.Descr))
 		}
+	}
+	if in.Icon != nil {
+		const prefix string = ",\"icon\":"
+		out.RawString(prefix)
+		out.String(string(*in.Icon))
 	}
 	out.RawByte('}')
 }
@@ -213,4 +228,82 @@ func (v *EpgData) UnmarshalJSON(data []byte) error {
 // UnmarshalEasyJSON supports easyjson.Unmarshaler interface
 func (v *EpgData) UnmarshalEasyJSON(l *jlexer.Lexer) {
 	easyjson6a975c40DecodeOttPlayEpgConverterLibEpgJsoner1(l, v)
+}
+func easyjson6a975c40DecodeOttPlayEpgConverterLibEpgJsoner2(in *jlexer.Lexer, out *ChListData) {
+	isTopLevel := in.IsStart()
+	if in.IsNull() {
+		in.Skip()
+		*out = nil
+	} else {
+		in.Delim('[')
+		if *out == nil {
+			if !in.IsDelim(']') {
+				*out = make(ChListData, 0, 8)
+			} else {
+				*out = ChListData{}
+			}
+		} else {
+			*out = (*out)[:0]
+		}
+		for !in.IsDelim(']') {
+			var v4 *string
+			if in.IsNull() {
+				in.Skip()
+				v4 = nil
+			} else {
+				if v4 == nil {
+					v4 = new(string)
+				}
+				*v4 = string(in.String())
+			}
+			*out = append(*out, v4)
+			in.WantComma()
+		}
+		in.Delim(']')
+	}
+	if isTopLevel {
+		in.Consumed()
+	}
+}
+func easyjson6a975c40EncodeOttPlayEpgConverterLibEpgJsoner2(out *jwriter.Writer, in ChListData) {
+	if in == nil && (out.Flags&jwriter.NilSliceAsEmpty) == 0 {
+		out.RawString("null")
+	} else {
+		out.RawByte('[')
+		for v5, v6 := range in {
+			if v5 > 0 {
+				out.RawByte(',')
+			}
+			if v6 == nil {
+				out.RawString("null")
+			} else {
+				out.String(string(*v6))
+			}
+		}
+		out.RawByte(']')
+	}
+}
+
+// MarshalJSON supports json.Marshaler interface
+func (v ChListData) MarshalJSON() ([]byte, error) {
+	w := jwriter.Writer{}
+	easyjson6a975c40EncodeOttPlayEpgConverterLibEpgJsoner2(&w, v)
+	return w.Buffer.BuildBytes(), w.Error
+}
+
+// MarshalEasyJSON supports easyjson.Marshaler interface
+func (v ChListData) MarshalEasyJSON(w *jwriter.Writer) {
+	easyjson6a975c40EncodeOttPlayEpgConverterLibEpgJsoner2(w, v)
+}
+
+// UnmarshalJSON supports json.Unmarshaler interface
+func (v *ChListData) UnmarshalJSON(data []byte) error {
+	r := jlexer.Lexer{Data: data}
+	easyjson6a975c40DecodeOttPlayEpgConverterLibEpgJsoner2(&r, v)
+	return r.Error()
+}
+
+// UnmarshalEasyJSON supports easyjson.Unmarshaler interface
+func (v *ChListData) UnmarshalEasyJSON(l *jlexer.Lexer) {
+	easyjson6a975c40DecodeOttPlayEpgConverterLibEpgJsoner2(l, v)
 }
