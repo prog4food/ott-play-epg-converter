@@ -1,21 +1,24 @@
 package main
 
 import (
-    "time"
-    "os"
-    "github.com/rs/zerolog"
-    "github.com/rs/zerolog/log"
-    "ott-play-epg-converter/lib/arg-reader"
-    "ott-play-epg-converter/lib/string-hashes"
-    "ott-play-epg-converter/lib/prov-meta"
+	"os"
+	"time"
+
+	"github.com/rs/zerolog"
+	"github.com/rs/zerolog/log"
+
+	"ott-play-epg-converter/lib/arg_reader"
+	"ott-play-epg-converter/lib/prov_meta"
+	"ott-play-epg-converter/lib/string_hashes"
 )
 
-const app_ver = "EPG converter for OTT-play FOSS v0.6.1"
+const app_ver = "EPG converter for OTT-play FOSS v0.7.3"
 
 func printHelp() {
   log.Error().Msg(`EPG converter for OTT-play FOSS
-  Command line: <app> [-c OPTS]
+  Command line: <app> [--epg-ram] [-c OPTS]
   Main options:
+    --epg-ram  process epg in RAM
     -с <opts>  parse epg files from json config
   NOTE: The character "," is a separator in the <opts>
  
@@ -56,12 +59,12 @@ func main() {
   defer db.Close()
     
   // Database tune
-  /*if _, err := db.Exec(`
+  if _, err := db.Exec(`
   PRAGMA synchronous  = NORMAL;
-  PRAGMA journal_mode = WAL;
+  PRAGMA journal_mode = MEMORY;
   `); err != nil {
     log.Error().Err(err).Send()
-  }*/
+  }
   
   // Загрузка общего мета-списка провайдеров
   prov_meta.Load()
@@ -79,8 +82,5 @@ func main() {
   // Сохранение общего мета-списка провайдеров
   prov_meta.Save()
 
-  if arg_reader.AppConfig.MakeList {
-    log.Info().Msg("Creating channel map")
-  }
   log.Info().Msgf("Total Execution time: %f", time.Since(tstart).Seconds())
 }

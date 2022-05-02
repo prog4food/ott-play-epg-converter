@@ -1,10 +1,11 @@
 package string_hashes
 
 import (
-  "strings"
-  "github.com/cespare/xxhash/v2"
-  xxhash32 "github.com/OneOfOne/xxhash"
-  //"github.com/twmb/murmur3"
+	"strings"
+
+	xxhash32 "github.com/OneOfOne/xxhash"
+	"github.com/cespare/xxhash/v2"
+	//"github.com/twmb/murmur3"
 )
 
 // С удалением unsafe бита, для корректной работы sqlite3

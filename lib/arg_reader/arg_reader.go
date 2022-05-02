@@ -1,15 +1,18 @@
 package arg_reader
 
 import (
-  "fmt"
-  "os"
-  "io"
-  "strings"
   "encoding/json"
+  "fmt"
+  "io"
   "net/http"
+  "os"
+  "strings"
+
   "github.com/rs/zerolog/log"
-  "ott-play-epg-converter/lib/string-hashes"
+
+  "ott-play-epg-converter/lib/string_hashes"
 )
+
 // Структура, описывающая один элемент EPG
 type ProvRecord struct {
   File    *string  `json:"file"`
@@ -20,12 +23,13 @@ type ProvRecord struct {
 }
 
 type ArgData struct {
-  MakeList    bool
   EpgSources  []*ProvRecord
 }
 
 var AppConfig ArgData
 var configCache map[uint32][]*ProvRecord
+
+var EpgTempDb = "epgcache.tmp"
 
 
 func ArgPanic(err error, args []string){
@@ -94,24 +98,17 @@ func ProcessC(arg_pos int, args []string) int {
   return 1
 }
 
-func ProcessL(arg_pos int, args []string) int {
-  const block_args = 0
-  AppConfig.MakeList = true
-  return 0
-}
-
-func ProcessS(arg_pos int, args []string) int {
-  // TODO
+func ProcessE(arg_pos int, args []string) int {
+  EpgTempDb = ":memory:"
   return 0
 }
 
 func DetectArg(num int, args []string) func(int, []string) int {
-  	switch args[num] {
-  	  case "-l": return ProcessL
+    switch args[num] {
+    case "--epg-ram": return ProcessE
     case "-c": return ProcessC
-    //case "-s": return ProcessS // TODO
     default:   return nil
-	}
+  }
 }
 
 func ParseArgs(args []string) {

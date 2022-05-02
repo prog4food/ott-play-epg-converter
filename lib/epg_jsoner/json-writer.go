@@ -1,13 +1,18 @@
 package epg_jsoner
 
 import (
-  "fmt"
-  "os"
-  "bytes"
-  "database/sql"
-  "github.com/rs/zerolog/log"
-  "ott-play-epg-converter/lib/prov-meta"
-  "ott-play-epg-converter/lib/arg-reader"
+	"bytes"
+	"database/sql"
+	"fmt"
+	"os"
+	"strconv"
+	"strings"
+	"unsafe"
+
+	"github.com/rs/zerolog/log"
+
+	"ott-play-epg-converter/lib/arg_reader"
+	"ott-play-epg-converter/lib/prov_meta"
 )
 
 var (
@@ -15,9 +20,10 @@ var (
   empty_string = ""
 )
 
-type ChList map[uint32]uint32
+type ChList map[uint32]uint64
 
-func ProcessDB(db *sql.DB, prov *arg_reader.ProvRecord) bool {
+
+func ProcessDB(db *sql.Tx, prov *arg_reader.ProvRecord) bool {
   ch_in_epg := EpgGenerate(db, prov)
   if ch_in_epg != nil {
     err := ChListGenerate(db, prov, ch_in_epg)
@@ -27,9 +33,9 @@ func ProcessDB(db *sql.DB, prov *arg_reader.ProvRecord) bool {
   return true
 }
 
-func epgJson2File(prname string, ch_hash uint32, rec_count uint32, f *bytes.Buffer) bool {
+func epgJson2File(prname string, ch_hash uint32, top_time_ch uint64, f *bytes.Buffer) bool {
   retn := false
-  if rec_count > 0  {
+  if top_time_ch > 0  {
     f.WriteString("\n]}");
     err := os.WriteFile(fmt.Sprintf("%s%d.json", prname, ch_hash), f.Bytes(), 0644)
     retn = (err == nil)
@@ -39,13 +45,21 @@ func epgJson2File(prname string, ch_hash uint32, rec_count uint32, f *bytes.Buff
   return retn
 }
 
-func EpgGenerate(db *sql.DB, prov *arg_reader.ProvRecord) ChList {
+func EpgGenerate(db *sql.Tx, prov *arg_reader.ProvRecord) ChList {
   provEpgPath := fmt.Sprintf("%s%cepg%c", prov.Id, os.PathSeparator, os.PathSeparator)
   if _, err := os.Stat(provEpgPath); os.IsNotExist(err) {
     if err := os.MkdirAll(provEpgPath, 0755); err != nil {
       log.Err(err).Send()
       return nil
     }
+  }
+  log.Info().Msgf("[%s] sorting epg_data...", prov.Id)
+  _, err := db.Exec(`
+    CREATE TABLE epg.data AS SELECT * FROM epg.temp_data ORDER BY h_ch_id, t_start;
+    --DROP TABLE epg.temp_data;`)
+  if err != nil {
+    log.Err(err).Send()
+    return nil
   }
   rows, err := db.Query(`
     SELECT epg.data.h_ch_id, epg.h_title.data, epg.h_desc.data, epg.h_icon.data,
@@ -55,63 +69,64 @@ func EpgGenerate(db *sql.DB, prov *arg_reader.ProvRecord) ChList {
     LEFT JOIN epg.h_title ON epg.data.h_title = epg.h_title.h
     LEFT JOIN epg.h_desc ON epg.data.h_desc = epg.h_desc.h
     LEFT JOIN epg.h_icon ON epg.data.h_icon = epg.h_icon.h
-    WHERE h_ch_ids.h IS NOT NULL
-    ORDER BY epg.data.h_ch_id, epg.data.t_start
+    WHERE h_ch_ids.h IS NOT NULL;
     `)
   if err != nil {
     log.Err(err).Send()
     return nil
   }
   defer rows.Close()
-  var buf []byte
-  _rec := EpgRecord{}
-  curr_channel := uint32(0) 
-  prev_channel := uint32(0) 
-  var f bytes.Buffer
-  f.Grow(2097152) // Buffer 2MB
-  _max_time    := uint64(0) // Максимальное время в epg
-  _count_epg   := uint32(0) // Счетчик записей в epg
-  _count_files := uint32(0) // Счетчик файлов с epg
-  ch_map := make(ChList)
+  log.Info().Msgf("[%s] generating json...", prov.Id)
+  
+  _rec := EpgRecord{}  // Временный JSON объект
+  var buf []byte       // Временный буфер для JSON.Marshal
+  var f bytes.Buffer   // Временный буфер для JSON файла
+  f.Grow(2097152)      // Буфер для файла 2MB
+
+  ch_map := make(ChList)  // Список обработанных каналов
+  curr_channel  := uint32(0) 
+  prev_channel  := uint32(0) 
+  _top_time_ch  := uint64(0)  // Крайнее время передачи для канала
+  _top_time_epg := uint64(0)  // Крайнее время передачи для провайдера
   for rows.Next() {
     // Чтение данных
     err = rows.Scan(&curr_channel, &_rec.Name, &_rec.Descr, &_rec.Icon, &_rec.Time, &_rec.TimeTo)
     if err != nil { log.Err(err).Send(); continue }
     // Канал поменялся?
     if curr_channel != prev_channel {
-      if epgJson2File(provEpgPath, prev_channel, _count_epg, &f) {
-        _count_files++  
-        ch_map[prev_channel] = _count_epg
+      if epgJson2File(provEpgPath, prev_channel, _top_time_ch, &f) {
+        ch_map[prev_channel] = _top_time_ch
       }
-      _count_epg = 0
+      _top_time_ch = 0
       f.WriteString("{\"epg_data\":[\n");
     } else {
       f.Write(file_newline)  
     }
-    _count_epg++
-    // Fix: Descr всегда ""
+    // Fix: Descr всегда "" (TODO: проверить в плеере)
     if _rec.Descr == nil { _rec.Descr = &empty_string }
     buf, err = _rec.MarshalJSON();
     if err != nil { log.Err(err).Send(); continue }
     f.Write(buf)
     prev_channel = curr_channel
-    if _max_time < _rec.Time { _max_time = _rec.Time }
+    if _top_time_ch < _rec.Time {
+      // Обновление _max_time для ch и epg
+      _top_time_ch = _rec.Time
+      if _top_time_epg < _top_time_ch { _top_time_epg = _top_time_ch }
+    }
   }
   err = rows.Err(); if err != nil {
     log.Err(err).Send()
   }
   // Добавление последней записи
-  if epgJson2File(provEpgPath, prev_channel, _count_epg, &f) {
-    _count_files++  
-    ch_map[prev_channel] = _count_epg
+  if epgJson2File(provEpgPath, prev_channel, _top_time_ch, &f) {
+    ch_map[prev_channel] = _top_time_ch
   }
   
-  log.Info().Msgf("[%s] files count: %d", prov.Id, _count_files)
-  prov_meta.InitProv(prov, _max_time)
+  log.Info().Msgf("[%s] files count: %d", prov.Id, len(ch_map))
+  prov_meta.InitProv(prov, _top_time_epg)
   
   return ch_map
 }
-
 
 func chListPush(_ch_id uint32, _ch_names uint32, f *bytes.Buffer, rec *ChListData, last_line bool) bool {
   if _ch_names > 0 {
@@ -129,7 +144,7 @@ func chListPush(_ch_id uint32, _ch_names uint32, f *bytes.Buffer, rec *ChListDat
   return false
 }
 
-func ChListGenerate(db *sql.DB, prov *arg_reader.ProvRecord, ch_map map[uint32]uint32) error {
+func ChListGenerate(db *sql.Tx, prov *arg_reader.ProvRecord, ch_map ChList) error {
   log.Info().Msgf("[%s] creating channels list...", prov.Id)
   channelsFile := fmt.Sprintf("%s%cchannels.json", prov.Id, os.PathSeparator)
 
@@ -140,7 +155,7 @@ func ChListGenerate(db *sql.DB, prov *arg_reader.ProvRecord, ch_map map[uint32]u
     LEFT JOIN h_ch_names ON ch_data.h_name = h_ch_names.h
     LEFT JOIN h_ch_icons ON ch_data.h_icon = h_ch_icons.h
     WHERE ch_data.h_prov_id = ?
-    ORDER BY ch_data.h_id
+    ORDER BY ch_data.h_id;
     `, prov.IdHash)
   if err != nil {
     return err
@@ -148,61 +163,63 @@ func ChListGenerate(db *sql.DB, prov *arg_reader.ProvRecord, ch_map map[uint32]u
   defer rows.Close()
   
   _rec := make(ChListData, 0, 16)
+  _meta_buf := make([]byte, 0, 512)
   var f bytes.Buffer
   f.Grow(2097152) // Buffer 2MB
   curr_channel := uint32(0)
   prev_channel := uint32(0)
-  _ch_names    := uint32(0)  // Счетчик имен каналов
-  _count_epg   := uint32(0)  // Счетчик каналов с epg
-  _count_chnls := uint32(0)  // Счетчик каналов
+  _count_names := uint32(0)  // Счетчик имен каналов
+  _count_epgch := uint32(0)  // Счетчик каналов с epg
+  _count_allch := uint32(0)  // Счетчик всех каналов
+  _top_time_ch := uint64(0)  // Крайнее время передачи для канала
+  _time_ch_ok  := false
   var _ch_id   *string
   var _ch_name *string
   var _ch_icon *string
-//  var _epg_ok  *string
-  var in_ch_map bool
   f.WriteString("{\n")
   for rows.Next() {
     // Чтение данных
     err = rows.Scan(&curr_channel, &_ch_id, &_ch_name, &_ch_icon)
     if err != nil { log.Err(err).Send(); continue }
-    _, in_ch_map = ch_map[curr_channel]; if !in_ch_map {
-      if _ch_icon == nil {
-        // Если канал не содержит ни epg ни значка, то он бесполезен
+    _top_time_ch, _time_ch_ok = ch_map[curr_channel]; if !_time_ch_ok {
+      if _ch_icon == nil || (!strings.HasPrefix(*_ch_icon, "http://") && !strings.HasPrefix(*_ch_icon, "https://")) {
+        // Если канал не содержит epg или логотипа, то он бесполезен
         log.Warn().Msgf("[%s] channel has no epg and icon: %d/%s", prov.Id, curr_channel, *_ch_id)
         continue
       }
     }
     if curr_channel != prev_channel {
-      if chListPush(prev_channel, _ch_names, &f, &_rec, false) {
-        _count_chnls++  
+      if chListPush(prev_channel, _count_names, &f, &_rec, false) {
+        _count_allch++  
       }
-      _ch_names = 0
+      _count_names = 0
       _rec = _rec[:0]
-      if in_ch_map { _count_epg++ }
+      if _time_ch_ok { _count_epgch++ }
       if _ch_icon == nil { _ch_icon = &empty_string }
-      //ch_meta := []
-      //ch_meta
-      //"¦" + strconv.
-      ch_meta := fmt.Sprintf("%s¦ %t¦ %s", *_ch_id, in_ch_map, *_ch_icon)
-      //_rec = append(_rec, _epg_ok, _ch_id, _ch_icon)
-      _rec = append(_rec, &ch_meta)
+      _meta_buf = _meta_buf[:0]
+      _meta_buf = append(_meta_buf, *_ch_id...)
+      _meta_buf = append(_meta_buf, 0xc2, 0xa6)
+      _meta_buf = strconv.AppendUint(_meta_buf, _top_time_ch, 10)
+      _meta_buf = append(_meta_buf, 0xc2, 0xa6)
+      _meta_buf = append(_meta_buf, *_ch_icon...)
+      _rec = append(_rec, (*string)(unsafe.Pointer(&_meta_buf)))
     }
     _rec = append(_rec, _ch_name)
-    _ch_names++
+    _count_names++
     prev_channel = curr_channel
   }
   err = rows.Err(); if err != nil {
     log.Err(err).Send()
   }
   // Добавление последней записи
-  if chListPush(prev_channel, _ch_names, &f, &_rec, true) {
-    _count_chnls++  
+  if chListPush(prev_channel, _count_names, &f, &_rec, true) {
+    _count_allch++  
   }
   // Сохранение файла на диск
   if err := os.WriteFile(channelsFile, f.Bytes(), 0644); err != nil {
     return err
   }
-  log.Info().Msgf("[%s] list ready, channels: %d, with epg: %d", prov.Id, _count_chnls, _count_epg)
+  log.Info().Msgf("[%s] list ready, channels: %d, with epg: %d", prov.Id, _count_allch, _count_epgch)
   return nil
 }
 

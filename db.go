@@ -1,14 +1,16 @@
 package main
 
 import (
-  "regexp"
-  "os"
 	"database/sql"
-	_ "github.com/mattn/go-sqlite3"
-  "github.com/rs/zerolog/log"
-  "ott-play-epg-converter/import/robbiet480/xmltv"
-  "ott-play-epg-converter/lib/arg-reader"
-  "ott-play-epg-converter/lib/string-hashes"
+	"os"
+	"regexp"
+
+  _ "github.com/mattn/go-sqlite3"
+	"github.com/rs/zerolog/log"
+
+	"ott-play-epg-converter/import/robbiet480/xmltv"
+	"ott-play-epg-converter/lib/arg_reader"
+	"ott-play-epg-converter/lib/string_hashes"
 )
 
 var (
@@ -54,21 +56,23 @@ func SeedDB(dbname string) *sql.DB {
 // Создание чистой внешней epg db и ее подключение
 func InitEPG(maindb *sql.DB) {
   var err error
-  if _, err = os.Stat("epgcache.tmp"); err == nil {
-    if err = os.Remove("epgcache.tmp"); err != nil {
-      log.Panic().Err(err).Send()  
+  if arg_reader.EpgTempDb != ":memory:" {
+    if _, err = os.Stat(arg_reader.EpgTempDb); err == nil {
+      if err = os.Remove(arg_reader.EpgTempDb); err != nil {
+        log.Panic().Err(err).Send()  
+      }
     }
   }
-  if _, err = maindb.Exec("ATTACH 'epgcache.tmp' AS epg;"); err != nil {
+  if _, err = maindb.Exec("ATTACH '" + arg_reader.EpgTempDb + "' AS epg;"); err != nil {
     log.Panic().Err(err).Send()
   }
   // Seed EPG database
   if _, err = maindb.Exec(`
     PRAGMA foreign_keys = off;
     BEGIN TRANSACTION;
-    -- Таблица: epg.data
-    DROP TABLE IF EXISTS epg.data;
-    CREATE TABLE epg.data (h_prov_id INTEGER NOT NULL, h_ch_id INTEGER NOT NULL, t_start BIGINT NOT NULL, t_stop BIGINT NOT NULL, h_title BIGINT NOT NULL, h_desc BIGINT, h_icon BIGINT, PRIMARY KEY (h_prov_id, h_ch_id, t_start, t_stop) ON CONFLICT REPLACE);
+    -- Таблица: epg.temp_data
+    DROP TABLE IF EXISTS epg.temp_data;
+    CREATE TABLE epg.temp_data (h_prov_id INTEGER NOT NULL, h_ch_id INTEGER NOT NULL, t_start BIGINT NOT NULL, t_stop BIGINT NOT NULL, h_title BIGINT NOT NULL, h_desc BIGINT, h_icon BIGINT, PRIMARY KEY (h_prov_id, h_ch_id, t_start, t_stop) ON CONFLICT REPLACE);
     -- Таблица: epg.h_desc
     DROP TABLE IF EXISTS epg.h_desc;
     CREATE TABLE epg.h_desc (h BIGINT PRIMARY KEY ON CONFLICT IGNORE NOT NULL, data STRING);
@@ -80,6 +84,9 @@ func InitEPG(maindb *sql.DB) {
     CREATE TABLE epg.h_title (h BIGINT PRIMARY KEY ON CONFLICT IGNORE NOT NULL, data STRING);
     COMMIT TRANSACTION;
     PRAGMA foreign_keys = on;
+    PRAGMA epg.synchronous = OFF;
+    PRAGMA epg.journal_mode = TRUNCATE;
+    --PRAGMA epg.journal_mode = WAL;
   `); err != nil {
     log.Panic().Err(err).Send()
   }
@@ -185,31 +192,3 @@ func NewProgCache(epg_data *sql.Stmt, epg_title *sql.Stmt, epg_desc *sql.Stmt, e
   // 2SQL: Связи
   epg_data.Exec(prov.IdHash, h_ch_id, pr.Start.Unix(), pr.Stop.Unix(), h_title, h_desc, h_icon)
 }
-
-/*
-func MakeChannelStruct(db *sql.DB) error {
-  // Database: Open
-  db, err := sql.Open("sqlite3", "./chcache.db"); if err != nil {
-    return err
-  }
-  defer db.Close()
-    rows, err := db.Query("select id, name from foo")
-	if err != nil {
-    return err
-	}
-	defer rows.Close()
-	for rows.Next() {
-		var id int
-		var name string
-		err = rows.Scan(&id, &name)
-		if err != nil {
-      return err
-		}
-		log.Info().Msg(fmt.Sprintln(id,name))
-	}
-	err = rows.Err()
-	if err != nil {
-		log.Fatal().Err(err)
-	}
-  return nil
-}*/

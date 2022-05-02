@@ -1,21 +1,20 @@
 package main
 
 import (
-  "errors"
-  "time"
-  "os"
-  "bufio"
-  "net/http"
-  "encoding/xml"
-  "compress/gzip"
-  
-  "database/sql"
-  _ "github.com/mattn/go-sqlite3"
-  "github.com/rs/zerolog/log"
-  
-  "ott-play-epg-converter/import/robbiet480/xmltv"
-  "ott-play-epg-converter/lib/epg-jsoner"
-  "ott-play-epg-converter/lib/arg-reader"
+	"bufio"
+	"compress/gzip"
+	"database/sql"
+	"encoding/xml"
+	"errors"
+	"net/http"
+	"os"
+	"time"
+
+	"github.com/rs/zerolog/log"
+
+	"ott-play-epg-converter/import/robbiet480/xmltv"
+	"ott-play-epg-converter/lib/arg_reader"
+	"ott-play-epg-converter/lib/epg_jsoner"
 )
 
 func isGZip(in_reader *bufio.Reader) (*gzip.Reader, error) {
@@ -46,7 +45,6 @@ func processXml(db *sql.DB, provData *arg_reader.ProvRecord) error {
       return err
     }
     defer xmlFile.Close()
-    //in_reader = bufio.NewReader(xmlFile)
     in_reader = bufio.NewReaderSize(xmlFile, 1048576)
 
   } else if len(provData.Urls) > 0 {
@@ -79,6 +77,7 @@ func processXml(db *sql.DB, provData *arg_reader.ProvRecord) error {
   } else {
     d = xml.NewDecoder(in_reader)
   }
+  log.Info().Msgf("[%s] Input ready %f", provData.Id, time.Since(metric_start).Seconds())
 
   // Database: CleanUp
   InitEPG(db)
@@ -86,41 +85,47 @@ func processXml(db *sql.DB, provData *arg_reader.ProvRecord) error {
   log.Info().Msgf("[%s] EpgDb wiped %f", provData.Id, time.Since(metric_start).Seconds())
 
   // DB: Start transaction
-  tx, err := db.Begin(); if err != nil {
+  epgtx, err := db.Begin(); if err != nil {
+    log.Err(err).Send()
+    return err
+  }
+
+  // DB: Start transaction
+  chtx, err := db.Begin(); if err != nil {
     log.Err(err).Send()
     return err
   }
  
   //// CH QUERY - BEGIN
   // PrecompiledQuery: ch_data insert
-  sql_ch_data := PreQuery(tx, "insert into ch_data values(?, ?, ?, ?, ?)")
+  sql_ch_data := PreQuery(chtx, "insert into ch_data values(?, ?, ?, ?, ?)")
   defer sql_ch_data.Close()
   // PrecompiledQuery: h_ch_names insert
-  sql_ch_names := PreQuery(tx, "insert into h_ch_names values(?, ?)")
+  sql_ch_names := PreQuery(chtx, "insert into h_ch_names values(?, ?)")
   defer sql_ch_names.Close()
   // PrecompiledQuery: h_ch_ids insert
-  sql_ch_ids := PreQuery(tx, "insert into h_ch_ids values(?, ?)")
+  sql_ch_ids := PreQuery(chtx, "insert into h_ch_ids values(?, ?)")
   defer sql_ch_ids.Close()
   // PrecompiledQuery: h_ch_icons insert
-  sql_ch_icons := PreQuery(tx, "insert into h_ch_icons values(?, ?)")
+  sql_ch_icons := PreQuery(chtx, "insert into h_ch_icons values(?, ?)")
   defer sql_ch_ids.Close()
   //// CH QUERY - END
   
   //// EPG QUERY - BEGIN
   // PrecompiledQuery: epg.data insert
-  sql_epg_data := PreQuery(tx, "insert into epg.data values(?, ?, ?, ?, ?, ?, ?)")
+  sql_epg_data := PreQuery(epgtx, "insert into epg.temp_data values(?, ?, ?, ?, ?, ?, ?)")
   defer sql_epg_data.Close()
 
   // PrecompiledQuery: epg.h_title insert
-  sql_epg_title := PreQuery(tx, "insert into epg.h_title values(?, ?)")
+  sql_epg_title := PreQuery(epgtx, "insert into epg.h_title values(?, ?)")
   defer sql_epg_title.Close()
   
   // PrecompiledQuery: epg.h_desc insert
-  sql_epg_desc := PreQuery(tx, "insert into epg.h_desc values(?, ?)")
+  sql_epg_desc := PreQuery(epgtx, "insert into epg.h_desc values(?, ?)")
   defer sql_epg_desc.Close()
   
   // PrecompiledQuery: epg.h_icon insert
-  sql_epg_icon := PreQuery(tx, "insert into epg.h_icon values(?, ?)")
+  sql_epg_icon := PreQuery(epgtx, "insert into epg.h_icon values(?, ?)")
   defer sql_epg_icon.Close()
   //// EPG QUERY - END
   
@@ -144,18 +149,18 @@ func processXml(db *sql.DB, provData *arg_reader.ProvRecord) error {
         }
         NewProgCache(sql_epg_data, sql_epg_title, sql_epg_desc, sql_epg_icon, &tvP, provData)
       }
-//    case xml.EndElement:
-//      fmt.Println(v.Name.Local)
     }
   }
 
   // DB: Final
   log.Info().Msgf("[%s] Epg parsing is ready %f", provData.Id, time.Since(metric_start).Seconds())
-  tx.Commit()
+  chtx.Commit()
   
   // Create json
   log.Info().Msgf("[%s] Database commit is ready %f", provData.Id, time.Since(metric_start).Seconds())
-  epg_jsoner.ProcessDB(db, provData)
+  epg_jsoner.ProcessDB(epgtx, provData)
+  //epgtx.Commit()
+  epgtx.Rollback()
   FinallyEPG(db)
   log.Info().Msgf("[%s] provider is ready %f", provData.Id, time.Since(metric_start).Seconds())
   return nil

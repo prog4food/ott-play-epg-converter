@@ -1,12 +1,14 @@
 package prov_meta
 
 import (
-  "os"
-  "time"
-  "encoding/json"
-  "github.com/rs/zerolog/log"
-  "ott-play-epg-converter/lib/arg-reader"
-  "ott-play-epg-converter/lib/string-hashes"
+	"encoding/json"
+	"os"
+	"time"
+
+	"github.com/rs/zerolog/log"
+
+	"ott-play-epg-converter/lib/arg_reader"
+	"ott-play-epg-converter/lib/string_hashes"
 )
 
 type ProvMeta struct {
@@ -30,7 +32,7 @@ func Load() {
     return
   }
   
-  if err := json.Unmarshal(jsonData, &ProvsMeta); err != nil  {
+  if err := json.Unmarshal(jsonData, &ProvsMeta); err != nil {
     log.Err(err).Send()
     return
   }
