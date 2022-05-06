@@ -12,7 +12,7 @@ import (
 	"ott-play-epg-converter/lib/string_hashes"
 )
 
-const app_ver = "EPG converter for OTT-play FOSS v0.7.3"
+const app_ver = "EPG converter for OTT-play FOSS v0.7.4"
 
 func printHelp() {
   log.Error().Msg(`EPG converter for OTT-play FOSS

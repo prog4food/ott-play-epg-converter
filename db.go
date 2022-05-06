@@ -172,7 +172,7 @@ func NewProgCache(epg_data *sql.Stmt, epg_title *sql.Stmt, epg_desc *sql.Stmt, e
   if len(pr.Descriptions) > 0  {
     h_desc = string_hashes.HashSting64(pr.Descriptions[0].Value)
     if h_title != h_desc  {
-      flat_string := sting_flater.ReplaceAllString(pr.Descriptions[0].Value, "|")
+      flat_string := sting_flater.ReplaceAllString(pr.Descriptions[0].Value, "<br/>")
       if _, err = epg_desc.Exec(h_desc, flat_string); err != nil {
         log.Err(err).Send()
     		}
