@@ -3,7 +3,7 @@ package epg_jsoner
 import (
 	"bytes"
 	"database/sql"
-	"fmt"
+	json "encoding/json"
 	"os"
 	"strconv"
 	"strings"
@@ -13,11 +13,13 @@ import (
 
 	"ott-play-epg-converter/lib/arg_reader"
 	"ott-play-epg-converter/lib/prov_meta"
+	"ott-play-epg-converter/lib/string_hashes"
 )
 
 var (
   file_newline = []byte{0x2c,0x0a}
   empty_string = ""
+  path_sep = string(os.PathSeparator)
 )
 
 type ChList map[uint32]uint64
@@ -37,7 +39,7 @@ func epgJson2File(prname string, ch_hash uint32, top_time_ch uint64, f *bytes.Bu
   retn := false
   if top_time_ch > 0  {
     f.WriteString("\n]}");
-    err := os.WriteFile(fmt.Sprintf("%s%d.json", prname, ch_hash), f.Bytes(), 0644)
+    err := os.WriteFile(prname + strconv.FormatUint(uint64(ch_hash), 10) + ".json", f.Bytes(), 0644)
     retn = (err == nil)
     if !retn { log.Err(err).Send() }    
   }
@@ -46,7 +48,7 @@ func epgJson2File(prname string, ch_hash uint32, top_time_ch uint64, f *bytes.Bu
 }
 
 func EpgGenerate(db *sql.Tx, prov *arg_reader.ProvRecord) ChList {
-  provEpgPath := fmt.Sprintf("%s%cepg%c", prov.Id, os.PathSeparator, os.PathSeparator)
+  provEpgPath := prov.Id + path_sep + "epg" + path_sep
   if _, err := os.Stat(provEpgPath); os.IsNotExist(err) {
     if err := os.MkdirAll(provEpgPath, 0755); err != nil {
       log.Err(err).Send()
@@ -123,19 +125,35 @@ func EpgGenerate(db *sql.Tx, prov *arg_reader.ProvRecord) ChList {
   }
   
   log.Info().Msgf("[%s] files count: %d", prov.Id, len(ch_map))
-  prov_meta.InitProv(prov, _top_time_epg)
+  prov_meta.PushProv(prov, _top_time_epg)
   
   return ch_map
+}
+
+func chListMeta(f *bytes.Buffer, prov *arg_reader.ProvRecord) {
+  ch_meta := &prov_meta.ProvMeta{}
+  ch_meta.Id = &prov.Id
+  ch_meta.LastEpg = prov.LastEpg
+  ch_meta.LastUpd = prov.LastUpd
+  ch_meta.Urls = make([]uint32, len(prov.Urls))
+  for i := 0; i < len(prov.Urls); i++ {
+    ch_meta.Urls[i] = string_hashes.HashSting32(prov.Urls[i])
+  }
+  buf, err := json.Marshal(ch_meta);
+  if err != nil { log.Err(err).Send(); return }
+  f.WriteString(`"meta": `)
+  f.Write(buf)
+  f.WriteString(",\n")
 }
 
 func chListPush(_ch_id uint32, _ch_names uint32, f *bytes.Buffer, rec *ChListData, last_line bool) bool {
   if _ch_names > 0 {
     buf, err := rec.MarshalJSON();
     if err != nil { log.Err(err).Send(); return false }
-    f.WriteString(fmt.Sprintf(`"%d":`, _ch_id))
+    f.WriteString(`"` + strconv.FormatUint(uint64(_ch_id), 10) + `":`)
     f.Write(buf)
     if last_line {
-      f.WriteString("\n}\n")
+      f.WriteString("\n}}\n")
     } else {
       f.Write(file_newline)
     }
@@ -146,7 +164,7 @@ func chListPush(_ch_id uint32, _ch_names uint32, f *bytes.Buffer, rec *ChListDat
 
 func ChListGenerate(db *sql.Tx, prov *arg_reader.ProvRecord, ch_map ChList) error {
   log.Info().Msgf("[%s] creating channels list...", prov.Id)
-  channelsFile := fmt.Sprintf("%s%cchannels.json", prov.Id, os.PathSeparator)
+  channelsFile := prov.Id + path_sep + "channels.json"
 
   rows, err := db.Query(`
     SELECT ch_data.h_id, h_ch_ids.data, h_ch_names.data, h_ch_icons.data
@@ -176,7 +194,9 @@ func ChListGenerate(db *sql.Tx, prov *arg_reader.ProvRecord, ch_map ChList) erro
   var _ch_id   *string
   var _ch_name *string
   var _ch_icon *string
-  f.WriteString("{\n")
+  f.WriteString("{")
+  chListMeta(&f, prov)
+  f.WriteString(`"data": {` + "\n")
   for rows.Next() {
     // Чтение данных
     err = rows.Scan(&curr_channel, &_ch_id, &_ch_name, &_ch_icon)

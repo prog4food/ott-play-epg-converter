@@ -8,12 +8,18 @@ import (
 	"github.com/rs/zerolog/log"
 
 	"ott-play-epg-converter/lib/arg_reader"
-	"ott-play-epg-converter/lib/string_hashes"
 )
 
 type ProvMeta struct {
-  LastUpd  uint64 `json:"last-update"` 
-  Urls   []uint32 `json:"url-hashes"`
+  Id        *string  `json:"id"`
+  Urls     []uint32  `json:"url-hashes"`
+  LastUpd    uint64  `json:"last-upd"`
+  LastEpg    uint64  `json:"last-epg"`
+}
+
+type ProvMetaShort struct {
+  LastUpd  uint64  `json:"last-upd"`
+  LastEpg  uint64  `json:"last-epg"`
 }
 
 const (
@@ -21,7 +27,7 @@ const (
 )
 
 var (
-  ProvsMeta = make(map[string]*ProvMeta)
+  prov_list = make(map[string]*ProvMetaShort)
 )
 
 
@@ -32,33 +38,33 @@ func Load() {
     return
   }
   
-  if err := json.Unmarshal(jsonData, &ProvsMeta); err != nil {
+  if err := json.Unmarshal(jsonData, &prov_list); err != nil {
     log.Err(err).Send()
     return
   }
 }
 
 // Обновление записи о провайдере
-func InitProv(p *arg_reader.ProvRecord, t uint64) {
-  val, ok := ProvsMeta[p.Id]
+func PushProv(p *arg_reader.ProvRecord, t uint64) {
+  val, ok := prov_list[p.Id]
   if !ok {
-    val = &ProvMeta{}
-    ProvsMeta[p.Id] = val
+    val = &ProvMetaShort{}
+    prov_list[p.Id] = val
   }
   // Meta update
-  if t < uint64(time.Now().Unix()) {
+  val.LastUpd = uint64(time.Now().Unix())
+  val.LastEpg = t
+
+  if t < val.LastUpd {
     log.Warn().Msgf("[%s] has epg from the past!", p.Id)
   }
-  val.LastUpd = t
-  val.Urls = make([]uint32, len(p.Urls))
-  for i := 0; i < len(p.Urls); i++ {
-    val.Urls[i] = string_hashes.HashSting32(p.Urls[i])
-  }
+  // Prov meta update
+  p.LastEpg, p.LastUpd = val.LastEpg, val.LastUpd
 }
 
 // Сохранение index файла по провайдерам
 func Save() {
-  jsonData, err := json.Marshal(&ProvsMeta); if err != nil {
+  jsonData, err := json.Marshal(&prov_list); if err != nil {
     log.Err(err).Send()
     return
   }
