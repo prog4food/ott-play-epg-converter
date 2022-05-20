@@ -133,8 +133,7 @@ func EpgGenerate(db *sql.Tx, prov *arg_reader.ProvRecord) ChList {
 func chListMeta(f *bytes.Buffer, prov *arg_reader.ProvRecord) {
   ch_meta := &prov_meta.ProvMeta{}
   ch_meta.Id = &prov.Id
-  ch_meta.LastEpg = prov.LastEpg
-  ch_meta.LastUpd = prov.LastUpd
+  ch_meta.LastEpg, ch_meta.LastUpd = prov.LastEpg, prov.LastUpd
   ch_meta.Urls = make([]uint32, len(prov.Urls))
   for i := 0; i < len(prov.Urls); i++ {
     ch_meta.Urls[i] = string_hashes.HashSting32(prov.Urls[i])
