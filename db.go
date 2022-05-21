@@ -24,17 +24,17 @@ func SeedDB(dbname string) *sql.DB {
     log.Panic().Err(err).Send()
   }
   // Check schema
-  if _, err = db.Exec("SELECT COUNT(*) FROM _dbver_1;"); err != nil {
+  if _, err = db.Exec("SELECT COUNT(*) FROM _dbver_2;"); err != nil {
     log.Info().Msg("Creating channel cache database...")
     if _, err = db.Exec(`
     PRAGMA foreign_keys = off;
     BEGIN TRANSACTION;
-    -- Таблица: _dbver_1
-    DROP TABLE IF EXISTS _dbver_1;
-    CREATE TABLE _dbver_1 (nop INT8);
+    -- Таблица: _dbver_2
+    DROP TABLE IF EXISTS _dbver_2;
+    CREATE TABLE _dbver_2 (nop INT8);
     -- Таблица: ch_data
     DROP TABLE IF EXISTS ch_data;
-    CREATE TABLE ch_data (h_prov_id INTEGER NOT NULL, h_id INTEGER NOT NULL, h_name BIGINT NOT NULL, h_icon BIGINT, prov_order INT8, PRIMARY KEY (h_prov_id, h_id, h_name) ON CONFLICT REPLACE);
+    CREATE TABLE ch_data (h_prov_id INTEGER NOT NULL, h_id INTEGER NOT NULL, h_name BIGINT NOT NULL, h_icon BIGINT, PRIMARY KEY (h_prov_id, h_id, h_name) ON CONFLICT REPLACE);
     -- Таблица: h_ch_icons
     DROP TABLE IF EXISTS h_ch_icons;
     CREATE TABLE h_ch_icons (h BIGINT PRIMARY KEY ON CONFLICT IGNORE NOT NULL, data STRING);
@@ -133,7 +133,7 @@ func NewChannelCache(ch_data *sql.Stmt, ch_ids *sql.Stmt, ch_names *sql.Stmt, ch
   if names_len == 0 {
     log.Error().Msgf("Channel %s has no display names", ch.ID)
     // 2SQL: Связи
-    if _, err = ch_data.Exec(prov.IdHash, h_id, h_name, h_icon, prov.Order); err != nil {
+    if _, err = ch_data.Exec(prov.IdHash, h_id, h_name, h_icon); err != nil {
       log.Err(err).Send()
   	  }
   }
@@ -144,7 +144,7 @@ func NewChannelCache(ch_data *sql.Stmt, ch_ids *sql.Stmt, ch_names *sql.Stmt, ch
       log.Err(err).Send()
   		}
     // 2SQL: Связи
-    if _, err = ch_data.Exec(prov.IdHash, h_id, h_name, h_icon, prov.Order); err != nil {
+    if _, err = ch_data.Exec(prov.IdHash, h_id, h_name, h_icon); err != nil {
       log.Err(err).Send()
   	  }
   }

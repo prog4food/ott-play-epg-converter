@@ -98,7 +98,7 @@ func processXml(db *sql.DB, provData *arg_reader.ProvRecord) error {
  
   //// CH QUERY - BEGIN
   // PrecompiledQuery: ch_data insert
-  sql_ch_data := PreQuery(chtx, "insert into ch_data values(?, ?, ?, ?, ?)")
+  sql_ch_data := PreQuery(chtx, "insert into ch_data values(?, ?, ?, ?)")
   defer sql_ch_data.Close()
   // PrecompiledQuery: h_ch_names insert
   sql_ch_names := PreQuery(chtx, "insert into h_ch_names values(?, ?)")

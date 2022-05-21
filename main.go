@@ -74,8 +74,6 @@ func main() {
   for i := 0; i < len(provConf); i++ {
     // Prepare provider hash
     provConf[i].IdHash = string_hashes.HashSting32(provConf[i].Id)
-    // Prov.Order default = 50
-    if provConf[i].Order == 0 { provConf[i].Order = 50 }
     // Parse XML
     processXml(db, provConf[i])
   }

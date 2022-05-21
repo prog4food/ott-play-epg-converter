@@ -18,7 +18,6 @@ type ProvRecord struct {
   File    *string  `json:"file"`
   Id       string  `json:"id"`
   IdHash   uint32
-  Order    uint8   `json:"order"`
   Urls   []string  `json:"urls"`
   LastEpg  uint64
   LastUpd  uint64
