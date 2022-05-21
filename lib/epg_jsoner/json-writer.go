@@ -12,12 +12,13 @@ import (
 	"github.com/rs/zerolog/log"
 
 	"ott-play-epg-converter/lib/arg_reader"
+	"ott-play-epg-converter/lib/helpers"
 	"ott-play-epg-converter/lib/prov_meta"
 	"ott-play-epg-converter/lib/string_hashes"
 )
 
 var (
-  file_newline = []byte{0x2c,0x0a}
+  file_newline = []byte{0x2c,0x0a}  // byte вариант ",\n"
   empty_string = ""
   path_sep = string(os.PathSeparator)
 )
@@ -136,13 +137,13 @@ func chListMeta(f *bytes.Buffer, prov *arg_reader.ProvRecord) {
   ch_meta.LastEpg, ch_meta.LastUpd = prov.LastEpg, prov.LastUpd
   ch_meta.Urls = make([]uint32, len(prov.Urls))
   for i := 0; i < len(prov.Urls); i++ {
-    ch_meta.Urls[i] = string_hashes.HashSting32(prov.Urls[i])
+    ch_meta.Urls[i] = string_hashes.HashSting32(helpers.CutHTTP(prov.Urls[i]))
   }
   buf, err := json.Marshal(ch_meta);
   if err != nil { log.Err(err).Send(); return }
   f.WriteString(`"meta": `)
   f.Write(buf)
-  f.WriteString(",\n")
+  f.Write(file_newline)  
 }
 
 func chListPush(_ch_id uint32, _ch_names uint32, f *bytes.Buffer, rec *ChListData, last_line bool) bool {
@@ -195,7 +196,7 @@ func ChListGenerate(db *sql.Tx, prov *arg_reader.ProvRecord, ch_map ChList) erro
   var _ch_icon *string
   f.WriteString("{")
   chListMeta(&f, prov)
-  f.WriteString(`"data": {` + "\n")
+  f.WriteString("\"data\": {\n")
   for rows.Next() {
     // Чтение данных
     err = rows.Scan(&curr_channel, &_ch_id, &_ch_name, &_ch_icon)

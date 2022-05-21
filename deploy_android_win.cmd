@@ -11,13 +11,13 @@ set GOOS=android
 rem aarch64: platform env
 set GOARCH=arm64
 set CC=aarch64-linux-android21-clang
-%go_compile% -o .\build\ott-play-epg-converter_android_arm64.bin
+%go_compile% -o .\build\ott-play-epg-converter_android_arm64
 
 rem armv7a: platform env
 set GOARM=7
 set GOARCH=arm
 set CC=armv7a-linux-androideabi21-clang
-%go_compile% -o .\build\ott-play-epg-converter_android_armv7a.bin
+%go_compile% -o .\build\ott-play-epg-converter_android_armv7a
 
 rem finish
 sh -c "gzip ./build/ott-play-epg-converter_android_*"
