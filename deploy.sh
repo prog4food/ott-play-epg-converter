@@ -1,5 +1,5 @@
 #!/bin/sh
-GO_URL="https://go.dev/dl/go1.18.1.linux-amd64.tar.gz"
+GO_URL="https://go.dev/dl/go1.18.2.linux-amd64.tar.gz"
 BIN_NAME="ott-play-epg-converter"
 BIN_DIR="build"
 
@@ -11,17 +11,17 @@ which $ENV_REQ > /dev/null || {
   apt-get install -y -qq git curl build-essential gcc-mingw-w64 gcc-aarch64-linux-gnu gcc-arm-linux-gnueabi gcc-arm-linux-gnueabihf
 }
 
-which go > /dev/null || {
-  export GOROOT=/go
-  export GOPATH=/home/go
-  export GOBIN=${GOPATH}/bin
-  export GOCACHE=${GOPATH}/.cache
-  export PATH=${GOROOT}/bin:$GOBIN:$PATH
-  which go > /dev/null || {
-    echo "[.] Installing GO environment..."
-    mkdir $GOROOT $GOPATH
-    curl -sL "$GO_URL" | tar zxf - -C /
-  }
+export GOROOT=/go
+export GOPATH=/home/go
+export GOBIN=${GOPATH}/bin
+export GOCACHE=${GOPATH}/.cache
+export PATH=${GOROOT}/bin:$GOBIN:$PATH
+
+# Download golang
+[ -f "$GOROOT/bin/go" ] || {
+  echo "[.] Installing GO environment..."
+  mkdir $GOROOT $GOPATH
+  curl -sL "$GO_URL" | tar zxf - -C /
 }
 
 go_compile() {
@@ -35,8 +35,8 @@ rm -f ./$BIN_DIR/${BIN_NAME}_windows_* ./$BIN_DIR/${BIN_NAME}_linux_*
 go mod download
 
 # Build releases: Windows
-go_compile windows 386 "i686-w64-mingw32-gcc" "--tags windows" "x64.exe"
-go_compile windows amd64 "x86_64-w64-mingw32-gcc" "--tags windows" "x86.exe"
+go_compile windows 386 "i686-w64-mingw32-gcc" "--tags windows" "x86.exe"
+go_compile windows amd64 "x86_64-w64-mingw32-gcc" "--tags windows" "x64.exe"
 # Build releases: Linux
 go_compile linux amd64 "gcc" "--tags linux" "x64"
 go_compile linux arm64 "aarch64-linux-gnu-gcc" "--tags linux" "arm64"
