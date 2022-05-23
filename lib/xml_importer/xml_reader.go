@@ -1,4 +1,4 @@
-package main
+package xml_importer
 
 import (
 	"bufio"
@@ -13,8 +13,8 @@ import (
 	"github.com/rs/zerolog/log"
 
 	"ott-play-epg-converter/import/robbiet480/xmltv"
-	"ott-play-epg-converter/lib/arg_reader"
-	"ott-play-epg-converter/lib/epg_jsoner"
+	"ott-play-epg-converter/lib/app_config"
+	"ott-play-epg-converter/lib/json_exporter"
 )
 
 func isGZip(in_reader *bufio.Reader) (*gzip.Reader, error) {
@@ -28,7 +28,7 @@ func isGZip(in_reader *bufio.Reader) (*gzip.Reader, error) {
 }
 
 
-func processXml(db *sql.DB, provData *arg_reader.ProvRecord) error {
+func ProcessXml(db *sql.DB, provData *app_config.ProvRecord) error {
   metric_start := time.Now()
   var d *xml.Decoder
   var in_reader *bufio.Reader
@@ -79,12 +79,13 @@ func processXml(db *sql.DB, provData *arg_reader.ProvRecord) error {
   }
   log.Info().Msgf("[%s] Input ready %f", provData.Id, time.Since(metric_start).Seconds())
 
-  // Database: CleanUp
-  InitEPG(db)
+  // Database: CleanUp & Attach
+  AttachEPG(db)
 
   log.Info().Msgf("[%s] EpgDb wiped %f", provData.Id, time.Since(metric_start).Seconds())
 
   // DB: Start transaction
+  // [!] В эту транзакцию ушло Default соединение
   epgtx, err := db.Begin(); if err != nil {
     log.Err(err).Send()
     return err
@@ -95,40 +96,8 @@ func processXml(db *sql.DB, provData *arg_reader.ProvRecord) error {
     log.Err(err).Send()
     return err
   }
- 
-  //// CH QUERY - BEGIN
-  // PrecompiledQuery: ch_data insert
-  sql_ch_data := PreQuery(chtx, "insert into ch_data values(?, ?, ?, ?)")
-  defer sql_ch_data.Close()
-  // PrecompiledQuery: h_ch_names insert
-  sql_ch_names := PreQuery(chtx, "insert into h_ch_names values(?, ?)")
-  defer sql_ch_names.Close()
-  // PrecompiledQuery: h_ch_ids insert
-  sql_ch_ids := PreQuery(chtx, "insert into h_ch_ids values(?, ?)")
-  defer sql_ch_ids.Close()
-  // PrecompiledQuery: h_ch_icons insert
-  sql_ch_icons := PreQuery(chtx, "insert into h_ch_icons values(?, ?)")
-  defer sql_ch_ids.Close()
-  //// CH QUERY - END
-  
-  //// EPG QUERY - BEGIN
-  // PrecompiledQuery: epg.data insert
-  sql_epg_data := PreQuery(epgtx, "insert into epg.temp_data values(?, ?, ?, ?, ?, ?, ?)")
-  defer sql_epg_data.Close()
+  PrecompileQuery(chtx, epgtx)
 
-  // PrecompiledQuery: epg.h_title insert
-  sql_epg_title := PreQuery(epgtx, "insert into epg.h_title values(?, ?)")
-  defer sql_epg_title.Close()
-  
-  // PrecompiledQuery: epg.h_desc insert
-  sql_epg_desc := PreQuery(epgtx, "insert into epg.h_desc values(?, ?)")
-  defer sql_epg_desc.Close()
-  
-  // PrecompiledQuery: epg.h_icon insert
-  sql_epg_icon := PreQuery(epgtx, "insert into epg.h_icon values(?, ?)")
-  defer sql_epg_icon.Close()
-  //// EPG QUERY - END
-  
   // XML: Process elements
   for {
     t, err := d.Token(); if err != nil { break }
@@ -137,31 +106,34 @@ func processXml(db *sql.DB, provData *arg_reader.ProvRecord) error {
       if v.Name.Local == "channel" {
         // XML: Read element <channel>
         tvC := xmltv.Channel{}
-          if err := d.DecodeElement(&tvC, &v); err != nil {
+        if err := d.DecodeElement(&tvC, &v); err != nil {
           log.Err(err).Send()
-          }
-        NewChannelCache(sql_ch_data, sql_ch_ids, sql_ch_names, sql_ch_icons, &tvC, provData) 
+        }
+        NewChannelCache(&tvC, provData) 
       } else if v.Name.Local == "programme" {
         // XML: Read element <programme>
         tvP := xmltv.Programme{}
         if err = d.DecodeElement(&tvP, &v); err != nil {
           log.Err(err).Send()
         }
-        NewProgCache(sql_epg_data, sql_epg_title, sql_epg_desc, sql_epg_icon, &tvP, provData)
+        NewProgCache(&tvP, provData)
       }
     }
   }
 
   // DB: Final
   log.Info().Msgf("[%s] Epg parsing is ready %f", provData.Id, time.Since(metric_start).Seconds())
-  chtx.Commit()
-  
+
   // Create json
   log.Info().Msgf("[%s] Database commit is ready %f", provData.Id, time.Since(metric_start).Seconds())
-  epg_jsoner.ProcessDB(epgtx, provData)
+  json_exporter.ProcessDB(epgtx, provData)
+
   //epgtx.Commit()
-  epgtx.Rollback()
-  FinallyEPG(db)
+  epgtx.Rollback() // Default соединение вернулось
+  //PrintAttachedDB(db, "final")
+  DetachEPG(db)
+  chtx.Commit()
+
   log.Info().Msgf("[%s] provider is ready %f", provData.Id, time.Since(metric_start).Seconds())
   return nil
 }

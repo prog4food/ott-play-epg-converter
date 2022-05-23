@@ -5,6 +5,7 @@
 	{"id":"intest", "file":"-"},
 	{"id":"bench", "_file":"sample_it999.test", "urls": ["http://prog4food.altervista.org/sfiles/sample_it999.test"]},
 	{"id":"propg", "file":"propg.xml"},
+	{"id":"kbc", "file":"kbc.xml"},
 	{"id":"propg-gz", "file":"propg.xml.gz"},
 	{"id":"iptvx.one", "urls": ["https://iptvx.site/epg.xml.gz", "http://iptvx.one/EPG"] },
 	{"id":"check404", "urls": ["http://prog4food.altervista.org/file404"]},

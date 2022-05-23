@@ -1,4 +1,4 @@
-package epg_jsoner
+package json_exporter
 
 //easyjson:json
 type EpgRecord struct {

@@ -1,4 +1,4 @@
-package string_hashes
+package helpers
 
 import (
 	"strings"

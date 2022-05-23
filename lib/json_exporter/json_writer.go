@@ -1,4 +1,4 @@
-package epg_jsoner
+package json_exporter
 
 import (
 	"bytes"
@@ -11,10 +11,8 @@ import (
 
 	"github.com/rs/zerolog/log"
 
-	"ott-play-epg-converter/lib/arg_reader"
+	"ott-play-epg-converter/lib/app_config"
 	"ott-play-epg-converter/lib/helpers"
-	"ott-play-epg-converter/lib/prov_meta"
-	"ott-play-epg-converter/lib/string_hashes"
 )
 
 var (
@@ -26,7 +24,7 @@ var (
 type ChList map[uint32]uint64
 
 
-func ProcessDB(db *sql.Tx, prov *arg_reader.ProvRecord) bool {
+func ProcessDB(db *sql.Tx, prov *app_config.ProvRecord) bool {
   ch_in_epg := EpgGenerate(db, prov)
   if ch_in_epg != nil {
     err := ChListGenerate(db, prov, ch_in_epg)
@@ -48,7 +46,7 @@ func epgJson2File(prname string, ch_hash uint32, top_time_ch uint64, f *bytes.Bu
   return retn
 }
 
-func EpgGenerate(db *sql.Tx, prov *arg_reader.ProvRecord) ChList {
+func EpgGenerate(db *sql.Tx, prov *app_config.ProvRecord) ChList {
   provEpgPath := prov.Id + path_sep + "epg" + path_sep
   if _, err := os.Stat(provEpgPath); os.IsNotExist(err) {
     if err := os.MkdirAll(provEpgPath, 0755); err != nil {
@@ -126,18 +124,18 @@ func EpgGenerate(db *sql.Tx, prov *arg_reader.ProvRecord) ChList {
   }
   
   log.Info().Msgf("[%s] files count: %d", prov.Id, len(ch_map))
-  prov_meta.PushProv(prov, _top_time_epg)
+  ProvList_Update(prov, _top_time_epg)
   
   return ch_map
 }
 
-func chListMeta(f *bytes.Buffer, prov *arg_reader.ProvRecord) {
-  ch_meta := &prov_meta.ProvMeta{}
+func chListMeta(f *bytes.Buffer, prov *app_config.ProvRecord) {
+  ch_meta := &provMeta{}
   ch_meta.Id = &prov.Id
   ch_meta.LastEpg, ch_meta.LastUpd = prov.LastEpg, prov.LastUpd
   ch_meta.Urls = make([]uint32, len(prov.Urls))
   for i := 0; i < len(prov.Urls); i++ {
-    ch_meta.Urls[i] = string_hashes.HashSting32(helpers.CutHTTP(prov.Urls[i]))
+    ch_meta.Urls[i] = helpers.HashSting32(helpers.CutHTTP(prov.Urls[i]))
   }
   buf, err := json.Marshal(ch_meta);
   if err != nil { log.Err(err).Send(); return }
@@ -162,7 +160,7 @@ func chListPush(_ch_id uint32, _ch_names uint32, f *bytes.Buffer, rec *ChListDat
   return false
 }
 
-func ChListGenerate(db *sql.Tx, prov *arg_reader.ProvRecord, ch_map ChList) error {
+func ChListGenerate(db *sql.Tx, prov *app_config.ProvRecord, ch_map ChList) error {
   log.Info().Msgf("[%s] creating channels list...", prov.Id)
   channelsFile := prov.Id + path_sep + "channels.json"
 

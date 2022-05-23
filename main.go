@@ -7,12 +7,13 @@ import (
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
 
-	"ott-play-epg-converter/lib/arg_reader"
-	"ott-play-epg-converter/lib/prov_meta"
-	"ott-play-epg-converter/lib/string_hashes"
+	"ott-play-epg-converter/lib/app_config"
+	"ott-play-epg-converter/lib/helpers"
+	"ott-play-epg-converter/lib/json_exporter"
+	"ott-play-epg-converter/lib/xml_importer"
 )
 
-const app_ver = "EPG converter for OTT-play FOSS v0.7.6"
+const app_ver = "EPG converter for OTT-play FOSS v0.7.7"
 
 func printHelp() {
   log.Error().Msg(`EPG converter for OTT-play FOSS
@@ -52,11 +53,13 @@ func main() {
     return
   }
   // Лень обрабатывать args по-взрослому...
-  arg_reader.ParseArgs(os.Args)
+  app_config.ParseArgs(os.Args)
   
   // Database: Open
-  db := SeedDB("chcache.db")
+  db := xml_importer.SeedDB("chcache.db")
   defer db.Close()
+  db.SetMaxIdleConns(1)
+  //db.SetMaxOpenConns(1)
     
   // Database tune
   if _, err := db.Exec(`
@@ -67,18 +70,18 @@ func main() {
   }
   
   // Загрузка общего мета-списка провайдеров
-  prov_meta.Load()
+  json_exporter.ProvList_Load()
  
   // Processing EPG XMLs
-  provConf := arg_reader.AppConfig.EpgSources
+  provConf := app_config.AppConfig.EpgSources
   for i := 0; i < len(provConf); i++ {
     // Prepare provider hash
-    provConf[i].IdHash = string_hashes.HashSting32(provConf[i].Id)
+    provConf[i].IdHash = helpers.HashSting32(provConf[i].Id)
     // Parse XML
-    processXml(db, provConf[i])
+    xml_importer.ProcessXml(db, provConf[i])
   }
   // Сохранение общего мета-списка провайдеров
-  prov_meta.Save()
+  json_exporter.ProvList_Save()
 
   log.Info().Msgf("Total Execution time: %f", time.Since(tstart).Seconds())
 }

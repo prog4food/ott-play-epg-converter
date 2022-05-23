@@ -1,16 +1,16 @@
-package arg_reader
+package app_config
 
 import (
-  "encoding/json"
-  "fmt"
-  "io"
-  "net/http"
-  "os"
-  "strings"
+	"encoding/json"
+	"fmt"
+	"io"
+	"net/http"
+	"os"
+	"strings"
 
-  "github.com/rs/zerolog/log"
+	"github.com/rs/zerolog/log"
 
-  "ott-play-epg-converter/lib/string_hashes"
+	"ott-play-epg-converter/lib/helpers"
 )
 
 // Структура, описывающая один элемент EPG
@@ -23,15 +23,13 @@ type ProvRecord struct {
   LastUpd  uint64
 }
 
-type ArgData struct {
+type argData struct {
+  MemDb          bool
   EpgSources  []*ProvRecord
 }
 
-var AppConfig ArgData
+var AppConfig argData
 var configCache map[uint32][]*ProvRecord
-
-var EpgTempDb = "epgcache.tmp"
-
 
 func ArgPanic(err error, args []string){
   if err != nil {
@@ -52,13 +50,13 @@ func ProcessC(arg_pos int, args []string) int {
   arg_pos++
   if arg_pos > len(args)  { ArgPanic(nil, args) }
   
-  // Обработка суб аргуметов
+  // Обработка суб аргуметов`
   sub_args := strings.Split(args[arg_pos], ",")
   sub_args_len := len(sub_args)
   if sub_args_len != 1 && sub_args_len != 2 { ArgPanic(nil, args) }
   
   fname   := sub_args[0]
-  fname_h := string_hashes.HashSting32(fname)
+  fname_h := helpers.HashSting32(fname)
   if conf, is_cached := configCache[fname_h]; is_cached {
     config_data = conf  // Конфиг в кеше
   } else { // Читаем конфиг
@@ -100,7 +98,7 @@ func ProcessC(arg_pos int, args []string) int {
 }
 
 func ProcessE(arg_pos int, args []string) int {
-  EpgTempDb = ":memory:"
+  AppConfig.MemDb = true
   return 0
 }
 

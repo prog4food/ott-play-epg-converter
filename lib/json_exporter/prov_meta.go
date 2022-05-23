@@ -1,4 +1,4 @@
-package prov_meta
+package json_exporter
 
 import (
 	"encoding/json"
@@ -7,32 +7,27 @@ import (
 
 	"github.com/rs/zerolog/log"
 
-	"ott-play-epg-converter/lib/arg_reader"
+	"ott-play-epg-converter/lib/app_config"
 )
 
-type ProvMeta struct {
+const providers_file = "providers.json"
+type provMeta struct {
   Id        *string  `json:"id"`
   Urls     []uint32  `json:"url-hashes"`
   LastUpd    uint64  `json:"last-upd"`
   LastEpg    uint64  `json:"last-epg"`
 }
-
-type ProvMetaShort struct {
+type provMetaShort struct {
   LastUpd  uint64  `json:"last-upd"`
   LastEpg  uint64  `json:"last-epg"`
 }
 
-const (
-  providers_file = "providers.json"
-)
 
-var (
-  prov_list = make(map[string]*ProvMetaShort)
-)
+var prov_list = make(map[string]*provMetaShort)
 
 
 // Загрузка index файла по провайдерам
-func Load() {
+func ProvList_Load() {
   jsonData, err := os.ReadFile(providers_file); if err != nil {
     log.Warn().Msg("Cannot load " + providers_file)
     return
@@ -45,10 +40,10 @@ func Load() {
 }
 
 // Обновление записи о провайдере
-func PushProv(p *arg_reader.ProvRecord, t uint64) {
+func ProvList_Update(p *app_config.ProvRecord, t uint64) {
   val, ok := prov_list[p.Id]
   if !ok {
-    val = &ProvMetaShort{}
+    val = &provMetaShort{}
     prov_list[p.Id] = val
   }
   // Meta update
@@ -63,7 +58,7 @@ func PushProv(p *arg_reader.ProvRecord, t uint64) {
 }
 
 // Сохранение index файла по провайдерам
-func Save() {
+func ProvList_Save() {
   jsonData, err := json.Marshal(&prov_list); if err != nil {
     log.Err(err).Send()
     return
