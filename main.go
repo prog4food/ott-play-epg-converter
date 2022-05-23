@@ -13,7 +13,7 @@ import (
 	"ott-play-epg-converter/lib/xml_importer"
 )
 
-const app_ver = "EPG converter for OTT-play FOSS v0.7.7"
+const app_ver = "EPG converter for OTT-play FOSS v0.7.8"
 
 func printHelp() {
   log.Error().Msg(`EPG converter for OTT-play FOSS

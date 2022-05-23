@@ -123,6 +123,11 @@ func ProcessXml(db *sql.DB, provData *app_config.ProvRecord) error {
 
   // DB: Final
   log.Info().Msgf("[%s] Epg parsing is ready %f", provData.Id, time.Since(metric_start).Seconds())
+  chtx.Commit()
+   // Dummy transaction
+  chtx, err = db.Begin(); if err != nil {
+    log.Err(err).Msg("Dummy channel transaction error")
+  }
 
   // Create json
   log.Info().Msgf("[%s] Database commit is ready %f", provData.Id, time.Since(metric_start).Seconds())
@@ -132,7 +137,7 @@ func ProcessXml(db *sql.DB, provData *app_config.ProvRecord) error {
   epgtx.Rollback() // Default соединение вернулось
   //PrintAttachedDB(db, "final")
   DetachEPG(db)
-  chtx.Commit()
+  chtx.Rollback()
 
   log.Info().Msgf("[%s] provider is ready %f", provData.Id, time.Since(metric_start).Seconds())
   return nil
