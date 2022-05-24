@@ -3,17 +3,18 @@ package xml_importer
 import (
 	"bufio"
 	"compress/gzip"
-	"database/sql"
 	"encoding/xml"
 	"errors"
 	"net/http"
 	"os"
 	"time"
 
+	"crawshaw.io/sqlite"
 	"github.com/rs/zerolog/log"
 
 	"ott-play-epg-converter/import/robbiet480/xmltv"
 	"ott-play-epg-converter/lib/app_config"
+	"ott-play-epg-converter/lib/helpers"
 	"ott-play-epg-converter/lib/json_exporter"
 )
 
@@ -28,7 +29,7 @@ func isGZip(in_reader *bufio.Reader) (*gzip.Reader, error) {
 }
 
 
-func ProcessXml(db *sql.DB, provData *app_config.ProvRecord) error {
+func ProcessXml(db *sqlite.Conn, provData *app_config.ProvRecord) error {
   metric_start := time.Now()
   var d *xml.Decoder
   var in_reader *bufio.Reader
@@ -79,24 +80,16 @@ func ProcessXml(db *sql.DB, provData *app_config.ProvRecord) error {
   }
   log.Info().Msgf("[%s] Input ready %f", provData.Id, time.Since(metric_start).Seconds())
 
-  // Database: CleanUp & Attach
-  AttachEPG(db)
+  // Epg database: CleanUp & Attach
+  db_epg := AttachEPG()
+  defer db_epg.Close()
+  log.Info().Msgf("[%s] EpgDb ready %f", provData.Id, time.Since(metric_start).Seconds())
 
-  log.Info().Msgf("[%s] EpgDb wiped %f", provData.Id, time.Since(metric_start).Seconds())
-
-  // DB: Start transaction
-  // [!] В эту транзакцию ушло Default соединение
-  epgtx, err := db.Begin(); if err != nil {
-    log.Err(err).Send()
-    return err
-  }
-
-  // DB: Start transaction
-  chtx, err := db.Begin(); if err != nil {
-    log.Err(err).Send()
-    return err
-  }
-  PrecompileQuery(chtx, epgtx)
+  // Готовим запросы
+  PrecompileQuery(db, db_epg)
+  // Начинаем транзакции
+  helpers.SimpleExec(db, "BEGIN TRANSACTION;", "ch - cannot start transaction")
+  helpers.SimpleExec(db_epg, "BEGIN TRANSACTION;", "epg - cannot start transaction")
 
   // XML: Process elements
   for {
@@ -121,23 +114,17 @@ func ProcessXml(db *sql.DB, provData *app_config.ProvRecord) error {
     }
   }
 
-  // DB: Final
   log.Info().Msgf("[%s] Epg parsing is ready %f", provData.Id, time.Since(metric_start).Seconds())
-  chtx.Commit()
-   // Dummy transaction
-  chtx, err = db.Begin(); if err != nil {
-    log.Err(err).Msg("Dummy channel transaction error")
-  }
+  // Commit: Channels
+  helpers.SimpleExec(db, "COMMIT TRANSACTION;", "ch - cannot end transaction")
 
   // Create json
   log.Info().Msgf("[%s] Database commit is ready %f", provData.Id, time.Since(metric_start).Seconds())
-  json_exporter.ProcessDB(epgtx, provData)
+  json_exporter.ProcessDB(db_epg, provData)
 
-  //epgtx.Commit()
-  epgtx.Rollback() // Default соединение вернулось
-  //PrintAttachedDB(db, "final")
-  DetachEPG(db)
-  chtx.Rollback()
+  // Commit: EPG
+  helpers.SimpleExec(db_epg, "COMMIT TRANSACTION; DETACH epg;", "epg - cannot end transaction")
+  FinalizeEpgQuery()
 
   log.Info().Msgf("[%s] provider is ready %f", provData.Id, time.Since(metric_start).Seconds())
   return nil

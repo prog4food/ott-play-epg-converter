@@ -1,89 +1,80 @@
 package xml_importer
 
 import (
-	"database/sql"
 	"os"
-	"ott-play-epg-converter/lib/app_config"
 
 	"github.com/rs/zerolog/log"
+
+	"ott-play-epg-converter/lib/app_config"
+	"ott-play-epg-converter/lib/helpers"
+
+	"crawshaw.io/sqlite"
+	"crawshaw.io/sqlite/sqlitex"
 )
 
 
-var EpgTempDb = "epgcache.tmp"
+var db_name_epg = "epgcache.tmp"
+var db_name_ch  = "chcache.db"
+var db_flags = sqlite.OpenFlags(0b1000000001000110)
+  // ^ SQLITE_OPEN_READWRITE|SQLITE_OPEN_CREATE|SQLITE_OPEN_URI|SQLITE_OPEN_NOMUTEX
 
-
-type DbTxInterface interface {
-  Query(query string, args ...interface{}) (*sql.Rows, error)
-  Exec(query string, args ...interface{}) (sql.Result, error)
-}
-
-func PrintAttachedDB(db DbTxInterface, s string)  {
-  rows, err := db.Query("PRAGMA database_list;")
-  if err != nil { log.Err(err).Send() }
-  for rows.Next() {
-    var id int
-    var name string
-    var file string
-    err = rows.Scan(&id, &name, &file)
-    if err != nil { log.Err(err).Send() }
-    log.Printf("Attached[%s]: %s - %s", s ,name, file)
-  }
-}
-
-
-func SeedDB(dbname string) *sql.DB {
+func SeedDB() *sqlite.Conn {
   var err error
-  var db *sql.DB
-  db, err = sql.Open("sqlite3", dbname); if err != nil {
+  var db *sqlite.Conn
+
+  db, err = sqlite.OpenConn(db_name_ch, db_flags); if err != nil {
     log.Panic().Err(err).Send()
   }
+
   // Check schema
-  if _, err = db.Exec("SELECT COUNT(*) FROM _dbver_2;"); err != nil {
-    log.Info().Msg("Creating channel cache database...")
-    if _, err = db.Exec(`
-    PRAGMA foreign_keys = off;
-    BEGIN TRANSACTION;
-    -- Таблица: _dbver_2
-    DROP TABLE IF EXISTS _dbver_2;
-    CREATE TABLE _dbver_2 (nop INT8);
-    -- Таблица: ch_data
-    DROP TABLE IF EXISTS ch_data;
-    CREATE TABLE ch_data (h_prov_id INTEGER NOT NULL, h_id INTEGER NOT NULL, h_name BIGINT NOT NULL, h_icon BIGINT, PRIMARY KEY (h_prov_id, h_id, h_name) ON CONFLICT REPLACE);
-    -- Таблица: h_ch_icons
-    DROP TABLE IF EXISTS h_ch_icons;
-    CREATE TABLE h_ch_icons (h BIGINT PRIMARY KEY ON CONFLICT IGNORE NOT NULL, data STRING);
-    -- Таблица: h_ch_ids
-    DROP TABLE IF EXISTS h_ch_ids;
-    CREATE TABLE h_ch_ids (h BIGINT PRIMARY KEY ON CONFLICT IGNORE NOT NULL, data STRING);
-    -- Таблица: h_ch_names
-    DROP TABLE IF EXISTS h_ch_names;
-    CREATE TABLE h_ch_names (h BIGINT PRIMARY KEY ON CONFLICT IGNORE NOT NULL, data STRING);
-    COMMIT TRANSACTION;
-    PRAGMA foreign_keys = on;
-    `); err != nil {
-      log.Panic().Err(err).Send()
-    }
+  if err = sqlitex.ExecTransient(db, "SELECT COUNT(*) FROM _dbver_2;", nil); err != nil {
+    log.Info().Msg("chdb: create...")
+    err = helpers.SimpleExec(db, `
+      PRAGMA foreign_keys = off;
+      BEGIN TRANSACTION;
+      -- Таблица: _dbver_2
+      DROP TABLE IF EXISTS _dbver_2;
+      CREATE TABLE _dbver_2 (nop INT8);
+      -- Таблица: ch_data
+      DROP TABLE IF EXISTS ch_data;
+      CREATE TABLE ch_data (h_prov_id INTEGER NOT NULL, h_id INTEGER NOT NULL, h_name BIGINT NOT NULL, h_icon BIGINT, PRIMARY KEY (h_prov_id, h_id, h_name) ON CONFLICT REPLACE);
+      -- Таблица: h_ch_icons
+      DROP TABLE IF EXISTS h_ch_icons;
+      CREATE TABLE h_ch_icons (h BIGINT PRIMARY KEY ON CONFLICT IGNORE NOT NULL, data STRING);
+      -- Таблица: h_ch_ids
+      DROP TABLE IF EXISTS h_ch_ids;
+      CREATE TABLE h_ch_ids (h BIGINT PRIMARY KEY ON CONFLICT IGNORE NOT NULL, data STRING);
+      -- Таблица: h_ch_names
+      DROP TABLE IF EXISTS h_ch_names;
+      CREATE TABLE h_ch_names (h BIGINT PRIMARY KEY ON CONFLICT IGNORE NOT NULL, data STRING);
+      COMMIT TRANSACTION;
+      PRAGMA foreign_keys = on;`, "chdb: create error");
+      if err != nil { panic(nil) }
   }
   return db
 }
 
 // Создание чистой внешней epg db и ее подключение
-func AttachEPG(db *sql.DB) {
+func AttachEPG() *sqlite.Conn {
   var err error
-  if app_config.AppConfig.MemDb {
-    EpgTempDb = ":memory:"
+  var db *sqlite.Conn
+
+  _db_name_epg := db_name_epg
+  if app_config.Args.MemDb {
+    _db_name_epg = ":memory:"
   } else {
-    if _, err = os.Stat(EpgTempDb); err == nil {
-      if err = os.Remove(EpgTempDb); err != nil {
-        log.Panic().Err(err).Send()  
-      }
-    }
+    f, err := os.Create(_db_name_epg)
+    if err != nil { log.Panic().Err(err).Send() }
+    f.Close()
   }
-  if _, err = db.Exec("ATTACH '" + EpgTempDb + "' AS epg;"); err != nil {
-    log.Panic().Err(err).Msg("Attach error")
-  }
+
+  db, err = sqlite.OpenConn(db_name_ch, db_flags);
+    if err != nil { log.Panic().Err(err).Msg("epgdb: cannot open connection") }
+
+  err = sqlitex.ExecTransient(db, "ATTACH '" + _db_name_epg + "' AS epg;", nil);
+    if err != nil { log.Panic().Err(err).Msg("epgdb: attach error") }
   // Seed EPG database
-  if _, err = db.Exec(`
+  err = helpers.SimpleExec(db,`
     PRAGMA foreign_keys = off;
     BEGIN TRANSACTION;
     -- Таблица: epg.temp_data
@@ -99,19 +90,10 @@ func AttachEPG(db *sql.DB) {
     DROP TABLE IF EXISTS epg.h_title;
     CREATE TABLE epg.h_title (h BIGINT PRIMARY KEY ON CONFLICT IGNORE NOT NULL, data STRING);
     COMMIT TRANSACTION;
-    PRAGMA foreign_keys = on;
-    PRAGMA epg.synchronous = OFF;
-    PRAGMA epg.journal_mode = TRUNCATE;
-    --PRAGMA epg.journal_mode = WAL;
-  `); err != nil {
-    log.Panic().Err(err).Msg("Seed error")
-  }
-}
+    PRAGMA foreign_keys = on;`, "epgdb: create error");
+    if err != nil { panic(nil) }
 
-// Отключение внешней epg db
-func DetachEPG(maindb *sql.DB) {
-  var err error
-  if _, err = maindb.Exec("DETACH epg;"); err != nil {
-    log.Err(err).Msg("DETACH error")
-  }
+  // Database tune
+  helpers.SimpleExec(db, "PRAGMA epg.journal_mode = OFF; PRAGMA epg.synchronous = OFF;", "epgdb: tune error"); // Раньше был TRUNCATE
+  return db
 }

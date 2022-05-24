@@ -43,25 +43,9 @@ func easyjson6a975c40DecodeOttPlayEpgConverterLibJsonExporter(in *jlexer.Lexer, 
 		case "time_to":
 			out.TimeTo = uint64(in.Uint64())
 		case "descr":
-			if in.IsNull() {
-				in.Skip()
-				out.Descr = nil
-			} else {
-				if out.Descr == nil {
-					out.Descr = new(string)
-				}
-				*out.Descr = string(in.String())
-			}
+			out.Descr = string(in.String())
 		case "icon":
-			if in.IsNull() {
-				in.Skip()
-				out.Icon = nil
-			} else {
-				if out.Icon == nil {
-					out.Icon = new(string)
-				}
-				*out.Icon = string(in.String())
-			}
+			out.Icon = string(in.String())
 		default:
 			in.SkipRecursive()
 		}
@@ -94,16 +78,12 @@ func easyjson6a975c40EncodeOttPlayEpgConverterLibJsonExporter(out *jwriter.Write
 	{
 		const prefix string = ",\"descr\":"
 		out.RawString(prefix)
-		if in.Descr == nil {
-			out.RawString("null")
-		} else {
-			out.String(string(*in.Descr))
-		}
+		out.String(string(in.Descr))
 	}
-	if in.Icon != nil {
+	if in.Icon != "" {
 		const prefix string = ",\"icon\":"
 		out.RawString(prefix)
-		out.String(string(*in.Icon))
+		out.String(string(in.Icon))
 	}
 	out.RawByte('}')
 }

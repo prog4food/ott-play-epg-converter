@@ -28,12 +28,12 @@ var prov_list = make(map[string]*provMetaShort)
 
 // Загрузка index файла по провайдерам
 func ProvList_Load() {
-  jsonData, err := os.ReadFile(providers_file); if err != nil {
+  file_buf, err := os.ReadFile(providers_file); if err != nil {
     log.Warn().Msg("Cannot load " + providers_file)
     return
   }
   
-  if err := json.Unmarshal(jsonData, &prov_list); err != nil {
+  if err := json.Unmarshal(file_buf, &prov_list); err != nil {
     log.Err(err).Send()
     return
   }
@@ -59,11 +59,11 @@ func ProvList_Update(p *app_config.ProvRecord, t uint64) {
 
 // Сохранение index файла по провайдерам
 func ProvList_Save() {
-  jsonData, err := json.Marshal(&prov_list); if err != nil {
+  file_buf, err := json.Marshal(&prov_list); if err != nil {
     log.Err(err).Send()
     return
   }
-  err = os.WriteFile(providers_file, jsonData, 0644); if err != nil  {
+  err = os.WriteFile(providers_file, file_buf, 0644); if err != nil  {
     log.Err(err).Send()
     return
   }

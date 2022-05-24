@@ -4,116 +4,187 @@
 ```
 wget http://prog4food.altervista.org/sfiles/sample_it999.test
 rm -rf ./bench/ chcache.db epgcache.tmp
-zcat sample_it999.test | ./ott-play-epg-converter  -e "-,bench"
+cat > bench.json << EOF
+[{"id":"bench", "file":"sample_it999.test", "urls": ["http://prog4food.altervista.org/sfiles/sample_it999.test"]}]
+EOF
+./ott-play-epg-converter -c bench.json
 ```
 
 ### Телевизор LG 2018 года
-Результаты с mfpu=neon-vfpv4 одинаковые
 ```
-2022-04-17T20:26:34 INF EPG compiler for OTT-play FOSS v0.3.3
-2022-04-17T20:26:34 INF   git@prog4food (c) 2o22
-2022-04-17T20:26:34 INF [bench] Read EPG from: StdIn
-2022-04-17T20:26:34 INF [bench] EpgDb wiped 0.019636
-2022-04-17T20:31:49 INF [bench] Epg parsing is ready 315.318471
-2022-04-17T20:31:50 INF [bench] Database commit is ready 315.512321
-2022-04-17T20:31:54 INF [bench] files count: 1
-2022-04-17T20:31:54 ERR  error="database or disk is full"
-2022-04-17T20:31:54 INF [bench] Json files is ready 319.556826
-2022-04-17T20:31:54 INF Total Execution time: 319.561552
+2022-05-25T00:53:08 INF EPG converter for OTT-play FOSS dev-47740db
+2022-05-25T00:53:08 INF   git@prog4food (c) 2o22
+2022-05-25T00:53:08 INF chdb: create...
+2022-05-25T00:53:09 INF [bench] Read EPG from: sample_it999.test
+2022-05-25T00:53:09 INF [bench] input is gzipped
+2022-05-25T00:53:09 INF [bench] Input ready 0.038794
+2022-05-25T00:53:09 INF [bench] EpgDb ready 0.079022
+2022-05-25T00:58:19 INF [bench] Epg parsing is ready 310.719587
+2022-05-25T00:58:19 INF [bench] Database commit is ready 310.746613
+2022-05-25T00:58:19 INF [bench] sorting epg_data...
+2022-05-25T00:58:24 INF [bench] generating json...
+2022-05-25T00:58:59 INF [bench] files count: 1677
+2022-05-25T00:58:59 WRN [bench] has epg from the past!
+2022-05-25T00:58:59 INF [bench] creating channels list...
+2022-05-25T00:59:00 INF [bench] list ready, channels: 1677, with epg: 1677
+2022-05-25T00:59:00 INF [bench] provider is ready 351.225684
+2022-05-25T00:59:00 INF Total Execution time: 351.244613
 ```
 
 ### A5x plus mini,  RK3328 (Armbian)
 ```
-2022-04-17T16:45:08 INF EPG compiler for OTT-play FOSS v0.3.3
-2022-04-17T16:45:08 INF   git@prog4food (c) 2o22
-2022-04-17T16:45:08 INF Creating channel cache database...
-2022-04-17T16:45:08 INF [bench] Read EPG from: StdIn
-2022-04-17T16:45:08 INF [bench] EpgDb wiped 0.024552
-2022-04-17T16:49:36 INF [bench] Epg parsing is ready 267.768850
-2022-04-17T16:49:36 INF [bench] Database commit is ready 268.270171
-2022-04-17T16:50:16 INF [bench] files count: 1678
-2022-04-17T16:50:16 INF [bench] Json files is ready 308.475999
-2022-04-17T16:50:16 INF Total Execution time: 308.506453
+2022-05-25T00:31:19 INF EPG converter for OTT-play FOSS dev-47740db
+2022-05-25T00:31:19 INF   git@prog4food (c) 2o22
+2022-05-25T00:31:19 INF chdb: create...
+2022-05-25T00:31:19 WRN Cannot load providers.json
+2022-05-25T00:31:19 INF [bench] Read EPG from: sample_it999.test
+2022-05-25T00:31:19 INF [bench] input is gzipped
+2022-05-25T00:31:19 INF [bench] Input ready 0.006755
+2022-05-25T00:31:19 INF [bench] EpgDb ready 0.032169
+2022-05-25T00:35:23 INF [bench] Epg parsing is ready 244.000439
+2022-05-25T00:35:23 INF [bench] Database commit is ready 244.042669
+2022-05-25T00:35:23 INF [bench] sorting epg_data...
+2022-05-25T00:35:27 INF [bench] generating json...
+2022-05-25T00:35:56 INF [bench] files count: 1677
+2022-05-25T00:35:56 WRN [bench] has epg from the past!
+2022-05-25T00:35:56 INF [bench] creating channels list...
+2022-05-25T00:35:56 INF [bench] list ready, channels: 1677, with epg: 1677
+2022-05-25T00:35:56 INF [bench] provider is ready 276.930434
+2022-05-25T00:35:56 INF Total Execution time: 276.968937
+```
+и тест с выводом в файл tar.gz (gzip level: 1)
+```
+2022-05-25T00:37:21 INF EPG converter for OTT-play FOSS dev-47740db
+2022-05-25T00:37:21 INF   git@prog4food (c) 2o22
+2022-05-25T00:37:21 INF chdb: create...
+2022-05-25T00:37:21 INF [bench] Read EPG from: sample_it999.test
+2022-05-25T00:37:21 INF [bench] input is gzipped
+2022-05-25T00:37:21 INF [bench] Input ready 0.049972
+2022-05-25T00:37:21 INF [bench] EpgDb ready 0.080177
+2022-05-25T00:41:26 INF [bench] Epg parsing is ready 245.336121
+2022-05-25T00:41:26 INF [bench] Database commit is ready 245.367742
+2022-05-25T00:41:26 INF [bench] sorting epg_data...
+2022-05-25T00:41:30 INF [bench] generating json...
+2022-05-25T00:42:00 INF [bench] files count: 1677
+2022-05-25T00:42:00 WRN [bench] has epg from the past!
+2022-05-25T00:42:00 INF [bench] creating channels list...
+2022-05-25T00:42:00 INF [bench] list ready, channels: 1677, with epg: 1677
+2022-05-25T00:42:00 INF [bench] provider is ready 279.256868
+2022-05-25T00:42:00 INF Total Execution time: 279.320978
 ```
 
 ### PC, Ryzen 7 Pro 3700 (Windows 11)
 ```
-2022-04-17T16:41:51 INF EPG compiler for OTT-play FOSS v0.3.3
-2022-04-17T16:41:51 INF   git@prog4food (c) 2o22
-2022-04-17T16:41:51 INF Creating channel cache database...
-2022-04-17T16:41:51 INF [bench] Read EPG from: StdIn
-2022-04-17T16:41:51 INF [bench] EpgDb wiped 0.112585
-2022-04-17T16:42:15 INF [bench] Epg parsing is ready 23.668930
-2022-04-17T16:42:18 INF [bench] Database commit is ready 26.857862
-2022-04-17T16:42:24 INF [bench] files count: 1678
-2022-04-17T16:42:24 INF [bench] Json files is ready 32.362656
-2022-04-17T16:42:24 INF Total Execution time: 32.497998
+2022-05-25T00:14:50 INF EPG converter for OTT-play FOSS dev-47740db
+2022-05-25T00:14:50 INF   git@prog4food (c) 2o22
+2022-05-25T00:14:50 INF chdb: create...
+2022-05-25T00:14:50 INF [bench] Read EPG from: sample_it999.test
+2022-05-25T00:14:50 INF [bench] input is gzipped
+2022-05-25T00:14:50 INF [bench] Input ready 0.001733
+2022-05-25T00:14:50 INF [bench] EpgDb ready 0.131677
+2022-05-25T00:15:09 INF [bench] Epg parsing is ready 19.105446
+2022-05-25T00:15:09 INF [bench] Database commit is ready 19.207240
+2022-05-25T00:15:09 INF [bench] sorting epg_data...
+2022-05-25T00:15:10 INF [bench] generating json...
+2022-05-25T00:15:14 INF [bench] files count: 1677
+2022-05-25T00:15:14 WRN [bench] has epg from the past!
+2022-05-25T00:15:14 INF [bench] creating channels list...
+2022-05-25T00:15:15 INF [bench] list ready, channels: 1677, with epg: 1677
+2022-05-25T00:15:15 INF [bench] provider is ready 25.033948
+2022-05-25T00:15:15 INF Total Execution time: 25.203066
 ```
 
 ### DIY NAS, Intel Atom 330 (X86_64 XPEnology)
 ```
-2022-04-17T16:47:17 INF EPG compiler for OTT-play FOSS v0.3.3
-2022-04-17T16:47:17 INF   git@prog4food (c) 2o22
-2022-04-17T16:47:17 INF Creating channel cache database...
-2022-04-17T16:47:17 INF [bench] Read EPG from: StdIn
-2022-04-17T16:47:17 INF [bench] EpgDb wiped 0.022220
-2022-04-17T16:52:19 INF [bench] Epg parsing is ready 301.611012
-2022-04-17T16:52:22 INF [bench] Database commit is ready 304.469652
-2022-04-17T16:53:15 INF [bench] files count: 1678
-2022-04-17T16:53:15 INF [bench] Json files is ready 357.642238
-2022-04-17T16:53:15 INF Total Execution time: 357.717273
+2022-05-25T00:21:26 INF EPG converter for OTT-play FOSS dev-47740db
+2022-05-25T00:21:26 INF   git@prog4food (c) 2o22
+2022-05-25T00:21:26 INF chdb: create...
+2022-05-25T00:21:26 WRN Cannot load providers.json
+2022-05-25T00:21:26 INF [bench] Read EPG from: sample_it999.test
+2022-05-25T00:21:26 INF [bench] input is gzipped
+2022-05-25T00:21:26 INF [bench] Input ready 0.039902
+2022-05-25T00:21:26 INF [bench] EpgDb ready 0.065457
+2022-05-25T00:25:41 INF [bench] Epg parsing is ready 255.049383
+2022-05-25T00:25:41 INF [bench] Database commit is ready 255.093095
+2022-05-25T00:25:41 INF [bench] sorting epg_data...
+2022-05-25T00:25:45 INF [bench] generating json...
+2022-05-25T00:26:17 INF [bench] files count: 1677
+2022-05-25T00:26:17 WRN [bench] has epg from the past!
+2022-05-25T00:26:17 INF [bench] creating channels list...
+2022-05-25T00:26:17 INF [bench] list ready, channels: 1677, with epg: 1677
+2022-05-25T00:26:17 INF [bench] provider is ready 291.668253
+2022-05-25T00:26:17 INF Total Execution time: 291.758175
+```
+и тест с выводом в файл tar.gz (gzip level: 1)
+```
+2022-05-25T00:38:09 INF EPG converter for OTT-play FOSS dev-47740db
+2022-05-25T00:38:09 INF   git@prog4food (c) 2o22
+2022-05-25T00:38:09 INF chdb: create...
+2022-05-25T00:38:09 INF [bench] Read EPG from: sample_it999.test
+2022-05-25T00:38:09 INF [bench] input is gzipped
+2022-05-25T00:38:09 INF [bench] Input ready 0.039737
+2022-05-25T00:38:09 INF [bench] EpgDb ready 0.093101
+2022-05-25T00:42:24 INF [bench] Epg parsing is ready 255.432903
+2022-05-25T00:42:24 INF [bench] Database commit is ready 255.454425
+2022-05-25T00:42:24 INF [bench] sorting epg_data...
+2022-05-25T00:42:28 INF [bench] generating json...
+2022-05-25T00:43:01 INF [bench] files count: 1677
+2022-05-25T00:43:01 WRN [bench] has epg from the past!
+2022-05-25T00:43:01 INF [bench] creating channels list...
+2022-05-25T00:43:02 INF [bench] list ready, channels: 1677, with epg: 1677
+2022-05-25T00:43:02 INF [bench] provider is ready 293.106307
+2022-05-25T00:43:02 INF Total Execution time: 293.215325
 ```
 
 ### OnePlus 6, Termux (SDM845)
 ```
-2022-04-17T15:36:43 INF EPG compiler for OTT-play FOSS v0.3.3
-2022-04-17T15:36:43 INF   git@prog4food (c) 2o22
-2022-04-17T15:36:43 INF [bench] Read EPG from: StdIn
-2022-04-17T15:36:44 INF [bench] EpgDb wiped 0.209152
-2022-04-17T15:37:42 INF [bench] Epg parsing is ready 58.208677
-2022-04-17T15:37:42 INF [bench] Database commit is ready 58.350487
-2022-04-17T15:37:51 INF [bench] files count: 1678
-2022-04-17T15:37:51 INF [bench] Json files is ready 67.553936
-2022-04-17T15:37:51 INF Total Execution time: 67.556929
+2022-05-24T21:04:01 INF EPG converter for OTT-play FOSS dev-47740db
+2022-05-24T21:04:01 INF   git@prog4food (c) 2o22
+2022-05-24T21:04:01 INF chdb: create...
+2022-05-24T21:04:01 WRN Cannot load providers.json
+2022-05-24T21:04:01 INF [bench] Read EPG from: sample_it999.test
+2022-05-24T21:04:01 INF [bench] input is gzipped
+2022-05-24T21:04:01 INF [bench] Input ready 0.011495
+2022-05-24T21:04:01 INF [bench] EpgDb ready 0.029029
+2022-05-24T21:04:48 INF [bench] Epg parsing is ready 46.881120
+2022-05-24T21:04:48 INF [bench] Database commit is ready 46.920858
+2022-05-24T21:04:48 INF [bench] sorting epg_data...
+2022-05-24T21:04:49 INF [bench] generating json...
+2022-05-24T21:04:55 INF [bench] files count: 1677
+2022-05-24T21:04:55 WRN [bench] has epg from the past!
+2022-05-24T21:04:55 INF [bench] creating channels list...
+2022-05-24T21:04:55 INF [bench] list ready, channels: 1677, with epg: 1677
+2022-05-24T21:04:55 INF [bench] provider is ready 54.080849
+2022-05-24T21:04:55 INF Total Execution time: 54.107098
 ```
 
 ### OnePlus 6, SDM845 (adb)
 ```
-2022-04-17T15:38:40 INF EPG compiler for OTT-play FOSS v0.3.3
-2022-04-17T15:38:40 INF   git@prog4food (c) 2o22
-2022-04-17T15:38:40 INF Creating channel cache database...
-2022-04-17T15:38:40 INF [bench] Read EPG from: StdIn
-2022-04-17T15:38:40 INF [bench] EpgDb wiped 0.022165
-2022-04-17T15:40:37 INF [bench] Epg parsing is ready 117.225780
-2022-04-17T15:40:38 INF [bench] Database commit is ready 117.277786
-2022-04-17T15:40:57 INF [bench] files count: 1678
-2022-04-17T15:40:57 INF [bench] Json files is ready 136.599523
-2022-04-17T15:40:57 INF Total Execution time: 136.628131
+2022-05-24T21:06:51 INF EPG converter for OTT-play FOSS dev-47740db
+2022-05-24T21:06:51 INF   git@prog4food (c) 2o22
+2022-05-24T21:06:51 INF chdb: create...
+2022-05-24T21:06:51 INF [bench] Read EPG from: sample_it999.test
+2022-05-24T21:06:51 INF [bench] input is gzipped
+2022-05-24T21:06:51 INF [bench] Input ready 0.002631
+2022-05-24T21:06:51 INF [bench] EpgDb ready 0.019260
+2022-05-24T21:09:33 INF [bench] Epg parsing is ready 161.634733
+2022-05-24T21:09:33 INF [bench] Database commit is ready 161.649042
+2022-05-24T21:09:33 INF [bench] sorting epg_data...
+2022-05-24T21:09:36 INF [bench] generating json...
+2022-05-24T21:09:55 INF [bench] files count: 1677
+2022-05-24T21:09:55 WRN [bench] has epg from the past!
+2022-05-24T21:09:55 INF [bench] creating channels list...
+2022-05-24T21:09:55 INF [bench] list ready, channels: 1677, with epg: 1677
+2022-05-24T21:09:55 INF [bench] provider is ready 183.888135
+2022-05-24T21:09:55 INF Total Execution time: 183.910220
 ```
 
 ### Mini M8S Pro, Amlogic 912 (SlimBox)
 ```
-2022-04-17T16:01:41 INF EPG compiler for OTT-play FOSS v0.3.3
-2022-04-17T16:01:41 INF   git@prog4food (c) 2o22
-2022-04-17T16:01:41 INF [bench] Read EPG from: StdIn
-2022-04-17T16:01:41 INF [bench] EpgDb wiped 0.101458
-2022-04-17T16:07:36 INF [bench] Epg parsing is ready 354.858614
-2022-04-17T16:07:36 INF [bench] Database commit is ready 355.239313
-2022-04-17T16:08:42 INF [bench] files count: 1678
-2022-04-17T16:08:42 INF [bench] Json files is ready 420.984886
-2022-04-17T16:08:42 INF Total Execution time: 420.988927
+
 ```
 
 ### BananaPi, AllWinner A20 (Armbian)
 ```
-2022-04-17T20:45:56 INF EPG compiler for OTT-play FOSS v0.3.3
-2022-04-17T20:45:56 INF   git@prog4food (c) 2o22
-2022-04-17T20:45:56 INF Creating channel cache database...
-2022-04-17T20:45:56 INF [bench] Read EPG from: StdIn
-2022-04-17T20:45:56 INF [bench] EpgDb wiped 0.043520
-2022-04-17T21:02:24 INF [bench] Epg parsing is ready 988.034203
-2022-04-17T21:02:26 INF [bench] Database commit is ready 990.162280
-2022-04-17T21:05:07 INF [bench] files count: 1678
-2022-04-17T21:05:07 INF [bench] Json files is ready 1151.398450
-2022-04-17T21:05:07 INF Total Execution time: 1151.500991
+
 ```
