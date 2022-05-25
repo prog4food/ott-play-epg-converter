@@ -207,7 +207,7 @@ func chListMeta(f *bytes.Buffer, prov *app_config.ProvRecord) {
   ch_meta.LastEpg, ch_meta.LastUpd = prov.LastEpg, prov.LastUpd
   ch_meta.Urls = make([]uint32, len(prov.Urls))
   for i := 0; i < len(prov.Urls); i++ {
-    ch_meta.Urls[i] = helpers.HashSting32(helpers.CutHTTP(prov.Urls[i]))
+    ch_meta.Urls[i] = helpers.HashSting32i(helpers.CutHTTP(prov.Urls[i]))
   }
   buf, err := json.Marshal(ch_meta);
   if err != nil { log.Err(err).Send(); return }
