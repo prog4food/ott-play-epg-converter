@@ -7,7 +7,6 @@ import (
 	json "encoding/json"
 	"os"
 	"strconv"
-	"strings"
 	"unsafe"
 
 	"crawshaw.io/sqlite"
@@ -130,13 +129,13 @@ func EpgGenerate(db *sqlite.Conn, prov *app_config.ProvRecord) ChList {
   // ^ ??? DROP TABLE epg.temp_data;
 
   stmt, tb, err := db.PrepareTransient(`
-    SELECT epg.temp_data.h_ch_id, epg.h_title.data, epg.h_desc.data, epg.h_icon.data,
-    epg.temp_data.t_start, epg.temp_data.t_stop
-    FROM epg.temp_data
-    LEFT JOIN h_ch_ids ON epg.temp_data.h_ch_id = h_ch_ids.h
-    LEFT JOIN epg.h_title ON epg.temp_data.h_title = epg.h_title.h
-    LEFT JOIN epg.h_desc ON epg.temp_data.h_desc = epg.h_desc.h
-    LEFT JOIN epg.h_icon ON epg.temp_data.h_icon = epg.h_icon.h
+    SELECT epg.data.h_ch_id, epg.h_title.data, epg.h_desc.data, epg.h_icon.data,
+    epg.data.t_start, epg.data.t_stop
+    FROM epg.data
+    LEFT JOIN h_ch_ids ON epg.data.h_ch_id = h_ch_ids.h
+    LEFT JOIN epg.h_title ON epg.data.h_title = epg.h_title.h
+    LEFT JOIN epg.h_desc ON epg.data.h_desc = epg.h_desc.h
+    LEFT JOIN epg.h_icon ON epg.data.h_icon = epg.h_icon.h
     WHERE h_ch_ids.h IS NOT NULL;`)
   if err != nil {
     log.Err(err).Msg("cannot compile epg final query")
@@ -172,7 +171,7 @@ func EpgGenerate(db *sqlite.Conn, prov *app_config.ProvRecord) ChList {
     curr_channel = uint32(stmt.ColumnInt32(0))
     _rec.Name    = stmt.ColumnText(1)
     _rec.Descr   = stmt.ColumnText(2)
-    _rec.Descr   = stmt.ColumnText(3)
+    _rec.Icon    = stmt.ColumnText(3)
     _rec.Time    = uint64(stmt.ColumnInt64(4))
     _rec.TimeTo  = uint64(stmt.ColumnInt64(5))
     // Канал поменялся?
@@ -264,13 +263,14 @@ func ChListGenerate(db *sqlite.Conn, prov *app_config.ProvRecord, ch_map ChList)
   _top_time_ch := uint64(0)  // Крайнее время передачи для канала
   _time_ch_ok  := false
   var _ch_id   string
-  var _ch_name string
   var _ch_icon string
   f.WriteString("{")
   chListMeta(&f, prov)
   f.WriteString("\"data\": {\n")
   var hasRow bool
   for {
+    var _ch_name string
+    // ^^ Именно на цикл, тк rec хранит ссылки, и при следующем прогоне, все ссылки будут указывать на _ch_name
     if hasRow, err = stmt.Step(); err != nil {
       log.Err(err).Msg("epg export: cannot read row!")
       continue
@@ -288,7 +288,7 @@ func ChListGenerate(db *sqlite.Conn, prov *app_config.ProvRecord, ch_map ChList)
     _ch_icon     = stmt.ColumnText(3)
 
     _top_time_ch, _time_ch_ok = ch_map[curr_channel]; if !_time_ch_ok {
-      if _ch_icon != "" || (!strings.HasPrefix(_ch_icon, "http://") && !strings.HasPrefix(_ch_icon, "https://")) {
+      if (_ch_icon != "") && (!helpers.HasHTTP(_ch_icon)) {
         // Если канал не содержит epg или логотипа, то он бесполезен
         log.Warn().Msgf("[%s] channel has no epg and icon: %d/%s", prov.Id, curr_channel, _ch_id)
         continue
