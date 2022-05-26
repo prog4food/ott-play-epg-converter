@@ -17,16 +17,14 @@ import (
 var depl_ver string
 
 func main() {
+  log.Logger = log.Output(zerolog.ConsoleWriter{Out: os.Stderr, TimeFormat: "2006-01-02T15:04:05", NoColor: true})
   tstart := time.Now()
   app_config.ReadArgs()
 
-  // Если вывод в tar -, то логи пишем в StdErr
-  var log_output *os.File
-  if app_config.Args.Tar == "-" {
-    log_output = os.Stderr
-  } else {
-    log_output = os.Stdout }
-  log.Logger = log.Output(zerolog.ConsoleWriter{Out: log_output, TimeFormat: "2006-01-02T15:04:05", NoColor: true})
+  // Если вывод не в tar -, то логи пишем в StdOut
+  if app_config.Args.Tar != "-" {
+    log.Logger = log.Output(zerolog.ConsoleWriter{Out: os.Stdout, TimeFormat: "2006-01-02T15:04:05", NoColor: true})
+  }
 
   log.Info().Msg("EPG converter for OTT-play FOSS " + depl_ver)
   log.Info().Msg("  git@prog4food (c) 2o22")
