@@ -1,5 +1,5 @@
 #!/bin/sh
-GO_URL="https://go.dev/dl/go1.18.2.linux-amd64.tar.gz"
+GO_URL="https://go.dev/dl/go1.18.3.linux-amd64.tar.gz"
 BIN_NAME="ofoss-epg-conv"
 BIN_DIR="build"
 
