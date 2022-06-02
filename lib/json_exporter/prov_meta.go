@@ -18,6 +18,7 @@ type provMeta struct {
   LastEpg    uint64  `json:"last-epg"`
 }
 type provMetaShort struct {
+  IdHash   uint32  `json:"id-hash"`
   LastUpd  uint64  `json:"last-upd"`
   LastEpg  uint64  `json:"last-epg"`
 }
@@ -43,7 +44,9 @@ func ProvList_Load() {
 func ProvList_Update(p *app_config.ProvRecord, t uint64) {
   val, ok := prov_list[p.Id]
   if !ok {
-    val = &provMetaShort{}
+    val = &provMetaShort{
+      IdHash: p.IdHash,
+    }
     prov_list[p.Id] = val
   }
   // Meta update
