@@ -38,14 +38,14 @@ func easyjson6a975c40DecodeOttPlayEpgConverterLibJsonExporter(in *jlexer.Lexer, 
 		switch key {
 		case "name":
 			out.Name = string(in.String())
-		case "time":
-			out.Time = uint64(in.Uint64())
-		case "time_to":
-			out.TimeTo = uint64(in.Uint64())
 		case "descr":
 			out.Descr = string(in.String())
 		case "icon":
 			out.Icon = string(in.String())
+		case "time":
+			out.Time = uint64(in.Uint64())
+		case "time_to":
+			out.TimeTo = uint64(in.Uint64())
 		default:
 			in.SkipRecursive()
 		}
@@ -66,16 +66,6 @@ func easyjson6a975c40EncodeOttPlayEpgConverterLibJsonExporter(out *jwriter.Write
 		out.String(string(in.Name))
 	}
 	{
-		const prefix string = ",\"time\":"
-		out.RawString(prefix)
-		out.Uint64(uint64(in.Time))
-	}
-	{
-		const prefix string = ",\"time_to\":"
-		out.RawString(prefix)
-		out.Uint64(uint64(in.TimeTo))
-	}
-	{
 		const prefix string = ",\"descr\":"
 		out.RawString(prefix)
 		out.String(string(in.Descr))
@@ -84,6 +74,16 @@ func easyjson6a975c40EncodeOttPlayEpgConverterLibJsonExporter(out *jwriter.Write
 		const prefix string = ",\"icon\":"
 		out.RawString(prefix)
 		out.String(string(in.Icon))
+	}
+	{
+		const prefix string = ",\"time\":"
+		out.RawString(prefix)
+		out.Uint64(uint64(in.Time))
+	}
+	{
+		const prefix string = ",\"time_to\":"
+		out.RawString(prefix)
+		out.Uint64(uint64(in.TimeTo))
 	}
 	out.RawByte('}')
 }

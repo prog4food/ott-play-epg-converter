@@ -3,7 +3,6 @@ package json_exporter
 import (
 	"archive/tar"
 	"bytes"
-	"compress/gzip"
 	json "encoding/json"
 	"os"
 	"strconv"
@@ -11,6 +10,7 @@ import (
 
 	"crawshaw.io/sqlite"
 	"github.com/rs/zerolog/log"
+  "github.com/klauspost/compress/gzip"
 
 	"ott-play-epg-converter/lib/app_config"
 	"ott-play-epg-converter/lib/helpers"
@@ -44,7 +44,7 @@ func SetTarOutput() {
   }
 
   // Сжимать ли поток
-  if _conf.Gzip != 255 {
+  if _conf.Gzip != 0 {
     // Gzip - ON
     gzip_writer, err = gzip.NewWriterLevel(tar_file, _conf.Gzip)
     if err != nil { log.Panic().Err(err).Msg("gzip writer: create error") }
@@ -204,9 +204,18 @@ func chListMeta(f *bytes.Buffer, prov *app_config.ProvRecord) {
   ch_meta := &provMeta{}
   ch_meta.Id = &prov.Id
   ch_meta.LastEpg, ch_meta.LastUpd = prov.LastEpg, prov.LastUpd
-  ch_meta.Urls = make([]uint32, len(prov.Urls))
-  for i := 0; i < len(prov.Urls); i++ {
-    ch_meta.Urls[i] = helpers.HashSting32i(helpers.CutHTTP(prov.Urls[i]))
+  urls_count := len(prov.Urls)
+  if urls_count > 0 {
+    start_from := 0
+    if !helpers.HasHTTP(prov.Urls[0]) {
+      start_from = 1
+    }
+    ch_meta.Urls = make([]uint32, urls_count-start_from)
+    for i := start_from; i < urls_count; i++ {
+      ch_meta.Urls[i-start_from] = helpers.HashSting32(helpers.CutHTTP(prov.Urls[i]))
+    }
+  } else {
+    ch_meta.Urls = []uint32{}
   }
   buf, err := json.Marshal(ch_meta);
   if err != nil { log.Err(err).Send(); return }
@@ -253,21 +262,22 @@ func ChListGenerate(db *sqlite.Conn, prov *app_config.ProvRecord, ch_map ChList)
 
   _rec := make(ChListData, 0, 16)
   _meta_buf := make([]byte, 0, 512)
-  var f bytes.Buffer
+  var (
+    f bytes.Buffer
+    curr_channel uint32 = 0
+    prev_channel uint32 = 0
+    _count_names uint32 = 0  // Счетчик имен каналов
+    _count_epgch uint32 = 0  // Счетчик каналов с epg
+    _count_allch uint32 = 0  // Счетчик всех каналов
+    _top_time_ch uint64 = 0  // Крайнее время передачи для канала
+    _time_ch_ok  bool = false
+    _ch_id, _ch_icon  string
+    hasRow bool
+  )
   f.Grow(2097152) // Buffer 2MB
-  curr_channel := uint32(0)
-  prev_channel := uint32(0)
-  _count_names := uint32(0)  // Счетчик имен каналов
-  _count_epgch := uint32(0)  // Счетчик каналов с epg
-  _count_allch := uint32(0)  // Счетчик всех каналов
-  _top_time_ch := uint64(0)  // Крайнее время передачи для канала
-  _time_ch_ok  := false
-  var _ch_id   string
-  var _ch_icon string
   f.WriteString("{")
   chListMeta(&f, prov)
   f.WriteString("\"data\": {\n")
-  var hasRow bool
   for {
     var _ch_name string
     // ^^ Именно на цикл, тк rec хранит ссылки, и при следующем прогоне, все ссылки будут указывать на _ch_name

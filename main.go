@@ -2,8 +2,11 @@ package main
 
 import (
 	"os"
+  "io"
 	"time"
+  "runtime"
 
+  "github.com/mattn/go-colorable"
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
 
@@ -14,25 +17,35 @@ import (
 )
 
 // Устанавливаются при сборке
-var depl_ver string
+var depl_ver = "[devel]"
 
 func main() {
-  log.Logger = log.Output(zerolog.ConsoleWriter{Out: os.Stderr, TimeFormat: "2006-01-02T15:04:05", NoColor: true})
+  var sOut io.Writer
+
+  // Фикс цветной консоли для Windows
+  if runtime.GOOS == "windows" { sOut = colorable.NewColorableStdout()
+  } else { sOut = os.Stdout }
+  //zerolog.TimeFieldFormat = zerolog.TimeFormatUnix
+  log.Logger = log.Output(zerolog.ConsoleWriter{Out: sOut, TimeFormat: "2006-01-02T15:04:05"})
+
   tstart := time.Now()
   app_config.ReadArgs()
 
-  // Если вывод не в tar -, то логи пишем в StdOut
-  if app_config.Args.Tar != "-" {
-    log.Logger = log.Output(zerolog.ConsoleWriter{Out: os.Stdout, TimeFormat: "2006-01-02T15:04:05", NoColor: true})
+  // Если вывод в tar и stdout, то логи пишем в StdErr
+  if app_config.Args.Tar == "-" {
+    if runtime.GOOS == "windows" { sOut = colorable.NewColorableStderr()
+    } else { sOut = os.Stderr }
+    log.Logger = log.Output(zerolog.ConsoleWriter{Out: sOut, TimeFormat: "2006-01-02T15:04:05"})
   }
 
   log.Info().Msg("EPG converter for OTT-play FOSS " + depl_ver)
-  log.Info().Msg("  git@prog4food (c) 2o22")
+  log.Info().Msg("  git@prog4food (c) 2o22\n")
   if len(os.Args) == 1 {
     // Запустили без аргументов
     log.Info().Msg("Run with -h for help")
     return
   }
+  app_config.ReadConfigs()
   if len(app_config.Args.EpgSources) == 0 {
     // Нечего обрабатывать
     log.Error().Msg("No sources, check config file and arguments")
@@ -57,7 +70,10 @@ func main() {
     // Prepare provider hash
     provConf[i].IdHash = helpers.HashSting32(provConf[i].Id)
     // Parse XML
-    xml_importer.ProcessXml(db, provConf[i])
+    err := xml_importer.ProcessXml(db, provConf[i])
+    if err != nil {
+      log.Err(err).Msgf("[%s]", provConf[i].Id)
+    }
   }
 
   // Сохранение общего мета-списка провайдеров

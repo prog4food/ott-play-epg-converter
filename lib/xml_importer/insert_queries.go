@@ -6,7 +6,6 @@ import (
 )
 
 type PreQueries struct {
-  ChOk        bool
   Ch_data    *sqlite.Stmt
   Ch_names   *sqlite.Stmt
   Ch_ids     *sqlite.Stmt
@@ -15,6 +14,7 @@ type PreQueries struct {
   Epg_title  *sqlite.Stmt
   Epg_desc   *sqlite.Stmt
   Epg_icon   *sqlite.Stmt
+  ChOk        bool
 }
 
 var DbPre PreQueries

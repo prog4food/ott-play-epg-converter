@@ -1,14 +1,31 @@
 [
-	{"id":"it999f", "file":"it999.xml.gz"},
-	{"id":"it999u", "urls": ["https://epg.it999.ru/epg.xml.gz"]},
-	{"id":"lightiptv", "_file":"lightiptv.xml.gz", "urls": ["https://epg.lightiptv.cc/epg.xml.gz"] },
-	{"id":"intest", "file":"-"},
-	{"id":"bench", "_file":"sample_it999.test", "urls": ["http://prog4food.altervista.org/sfiles/sample_it999.test"]},
-	{"id":"propg", "file":"propg.xml"},
-	{"id":"kbc", "file":"kbc.xml"},
-	{"id":"propg-gz", "file":"propg.xml.gz"},
-	{"id":"iptvx.one", "urls": ["https://iptvx.site/epg.xml.gz", "http://iptvx.one/EPG"] },
-	{"id":"check404", "urls": ["http://prog4food.altervista.org/file404"]},
-	{"id":"check301", "urls": ["https://iptvx.one/EPG"]},
-	{"id":"tv.team",  "urls": ["https://tv.team/tvteam.img.xml"]}
+	/*
+	Формат файла - hjson: https://hjson.github.io/ 
+
+	Список провайдеров требует указания id и массива urls
+	Для обработки используется первый элемент из urls, остальные только для url-hashes
+	[i] Поддерживаются gzip файлы
+	[i] Первый элемент может быть ссылкой, локальным файлом или "-"
+	[i] "-" читает ввод из stdin, (!) технически нельзя использовать больше одного "-" за один запуск
+	*/
+	
+	// Чтение из локального файла
+	{	id:"it999f", urls: [ "it999.xml.gz" ] }
+
+	// Чтение из файла по ссылке (добавится в url-hashes)
+	{ id:"it999u", urls: [ "https://epg.it999.ru/epg.xml.gz" ] }
+
+	// Чтение из файла, и запись в url-hashes ссылки	
+	{ id:"lightiptv", urls: [ "lightiptv.xml.gz", "https://epg.lightiptv.cc/epg.xml.gz" ] }
+
+	// Чтение из stdin, например:
+	//   cat epg.xml.gz | ofoss-conv -c sample_config.json,intest
+	//   curl -sL https://epg.it999.ru/epg.xml.gz | ofoss-conv -c sample_config.json,intest
+	{ id:"intest", urls:[ "-" ] }
+
+	// На этом источнике я тестирую производительность
+	{ id:"bench", urls: ["sample_it999.test", "http://prog4food.altervista.org/sfiles/sample_it999.test"] }
+
+	// Конечно можно указывать не gz файлы
+	{"id":"propg", urls: [ "propg.xml" ] }
 ]

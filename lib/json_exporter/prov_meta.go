@@ -18,9 +18,9 @@ type provMeta struct {
   LastEpg    uint64  `json:"last-epg"`
 }
 type provMetaShort struct {
-  IdHash   uint32  `json:"id-hash"`
   LastUpd  uint64  `json:"last-upd"`
   LastEpg  uint64  `json:"last-epg"`
+  IdHash   uint32  `json:"id-hash"`
 }
 
 

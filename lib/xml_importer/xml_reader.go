@@ -2,20 +2,25 @@ package xml_importer
 
 import (
 	"bufio"
-	"compress/gzip"
 	"encoding/xml"
 	"errors"
+	"fmt"
 	"net/http"
 	"os"
 	"time"
 
 	"crawshaw.io/sqlite"
+	"github.com/klauspost/compress/gzip"
 	"github.com/rs/zerolog/log"
 
 	"ott-play-epg-converter/import/robbiet480/xmltv"
 	"ott-play-epg-converter/lib/app_config"
 	"ott-play-epg-converter/lib/helpers"
 	"ott-play-epg-converter/lib/json_exporter"
+)
+
+var (
+  errEmptyXmlTvSources = errors.New("Empty XMLTV sources")
 )
 
 func isGZip(in_reader *bufio.Reader) (*gzip.Reader, error) {
@@ -30,45 +35,44 @@ func isGZip(in_reader *bufio.Reader) (*gzip.Reader, error) {
 
 
 func ProcessXml(db *sqlite.Conn, provData *app_config.ProvRecord) error {
+  if len(provData.Urls) == 0 {
+    return errEmptyXmlTvSources
+  }
   metric_start := time.Now()
+
   var d *xml.Decoder
   var in_reader *bufio.Reader
-  if provData.File != nil && *provData.File == "-" {
+
+  var xmltv_source = provData.Urls[0]
+  if xmltv_source == "-" {
     // Reader: StdIn
     log.Info().Msgf("[%s] Read EPG from: StdIn", provData.Id)
     in_reader = bufio.NewReader(os.Stdin)
-  } else if provData.File != nil {
-
-    // Reader: File
-    log.Info().Msgf("[%s] Read EPG from: %s", provData.Id, *provData.File)
-    xmlFile, err := os.Open(*provData.File); if err != nil {
-      log.Err(err).Send()
+  
+  } else if helpers.HasHTTP(xmltv_source) {
+    // Reader: HTTP
+    log.Info().Msgf("[%s] Download EPG from: %s", provData.Id, xmltv_source)
+    resp, err := http.Get(xmltv_source); if err != nil {
+      return fmt.Errorf("Download failed. %s", err)
+    }
+    defer resp.Body.Close()
+    if resp.StatusCode != 200 {
+      return fmt.Errorf("Download bad result. %d:%s", resp.StatusCode, resp.Status)
+    }
+    in_reader = bufio.NewReader(resp.Body)
+  
+  } else {
+    // Reader: File ?
+    log.Info().Msgf("[%s] Read EPG from: %s", provData.Id, xmltv_source)
+    xmlFile, err := os.Open(xmltv_source); if err != nil {
       return err
     }
     defer xmlFile.Close()
     in_reader = bufio.NewReaderSize(xmlFile, 1048576)
-
-  } else if len(provData.Urls) > 0 {
-    // Reader: HTTP
-    log.Info().Msgf("[%s] Download EPG from: %s", provData.Id, provData.Urls[0])
-    resp, err := http.Get(provData.Urls[0]); if err != nil {
-      log.Err(err).Send()
-      return err
-    }
-    defer resp.Body.Close()
-    if resp.StatusCode != 200 {
-      log.Error().Msgf("[%s] Download failed. %d:%s", provData.Id, resp.StatusCode, resp.Status)
-      return errors.New("download failed")      
-    }
-    in_reader = bufio.NewReader(resp.Body)
-  } else {
-    log.Error().Msgf("[%s] provider has no eligible sources", provData.Id)
-    return errors.New("has no eligible sources")
   }
 
   // Check for GZip header
   in_is_gzip, err := isGZip(in_reader); if err != nil {
-    log.Err(err).Send()
     return err
   }
   if in_is_gzip != nil {
