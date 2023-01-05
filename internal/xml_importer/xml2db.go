@@ -5,9 +5,9 @@ import (
 
 	"github.com/rs/zerolog/log"
 
-	"ott-play-epg-converter/import/robbiet480/xmltv"
-	"ott-play-epg-converter/lib/app_config"
-	"ott-play-epg-converter/lib/helpers"
+	"ott-play-epg-converter/pkg/robbiet480/xmltv"
+	"ott-play-epg-converter/internal/app_config"
+	"ott-play-epg-converter/internal/helpers"
 )
 
 var (

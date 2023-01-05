@@ -12,8 +12,8 @@ import (
 	"github.com/rs/zerolog/log"
   "github.com/klauspost/compress/gzip"
 
-	"ott-play-epg-converter/lib/app_config"
-	"ott-play-epg-converter/lib/helpers"
+	"ott-play-epg-converter/internal/app_config"
+	"ott-play-epg-converter/internal/helpers"
 )
 
 var (
@@ -22,7 +22,6 @@ var (
   gzip_writer  *gzip.Writer
   tar_std_file *tar.Header
   file_newline = []byte{0x2c,0x0a}  // byte вариант ",\n"
-  empty_string = ""
   path_sep = string(os.PathSeparator)
 )
 

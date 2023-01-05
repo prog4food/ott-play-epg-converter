@@ -10,10 +10,10 @@ import (
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
 
-	"ott-play-epg-converter/lib/app_config"
-	"ott-play-epg-converter/lib/helpers"
-	"ott-play-epg-converter/lib/json_exporter"
-	"ott-play-epg-converter/lib/xml_importer"
+	"ott-play-epg-converter/internal/app_config"
+	"ott-play-epg-converter/internal/helpers"
+	"ott-play-epg-converter/internal/json_exporter"
+	"ott-play-epg-converter/internal/xml_importer"
 )
 
 // Устанавливаются при сборке

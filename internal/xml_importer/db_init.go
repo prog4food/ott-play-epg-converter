@@ -5,11 +5,11 @@ import (
 
 	"github.com/rs/zerolog/log"
 
-	"ott-play-epg-converter/lib/app_config"
-	"ott-play-epg-converter/lib/helpers"
-
 	"crawshaw.io/sqlite"
 	"crawshaw.io/sqlite/sqlitex"
+
+	"ott-play-epg-converter/internal/app_config"
+	"ott-play-epg-converter/internal/helpers"
 )
 
 

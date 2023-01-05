@@ -7,7 +7,7 @@ import (
 
 	"github.com/rs/zerolog/log"
 
-	"ott-play-epg-converter/lib/app_config"
+	"ott-play-epg-converter/internal/app_config"
 )
 
 const providers_file = "providers.json"
