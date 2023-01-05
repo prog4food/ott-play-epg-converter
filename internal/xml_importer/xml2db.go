@@ -5,7 +5,7 @@ import (
 
 	"github.com/rs/zerolog/log"
 
-	"ott-play-epg-converter/pkg/robbiet480/xmltv"
+  "ott-play-epg-converter/internal/xml_importer/xmltv_min"
 	"ott-play-epg-converter/internal/config/config_v"
 	"ott-play-epg-converter/internal/helpers"
 )
@@ -16,7 +16,7 @@ var (
 
 // XML2SQL: Кешируем запись <channel>
 // Берем Id, DisplayName[*] и Icon[0]
-func NewChannelCache(ch *xmltv.Channel, prov *config_v.ProvRecord) {
+func NewChannelCache(ch *xmltv_min.Channel, prov *config_v.ProvRecord) {
   // 2SQL: dedup Id канала
   h_id := helpers.HashSting32i(ch.ID)
   InsertKV(DbPre.Ch_ids, h_id, ch.ID)
@@ -45,7 +45,7 @@ func NewChannelCache(ch *xmltv.Channel, prov *config_v.ProvRecord) {
 
 // XML2SQL: Кешируем запись <programme>
 // Берем только Title[0] и Desc[0]
-func NewProgCache(pr *xmltv.Programme, prov *config_v.ProvRecord) {
+func NewProgCache(pr *xmltv_min.Prog, prov *config_v.ProvRecord) {
   // Проверки
   if len(pr.Titles) == 0 || pr.Start == nil || pr.Stop == nil {
     log.Warn().Msgf("[%s] bad programme record", pr.Channel)
@@ -77,8 +77,8 @@ func NewProgCache(pr *xmltv.Programme, prov *config_v.ProvRecord) {
   // 2SQL: Связи
   DbPre.Epg_data.BindInt64(1, int64(prov.IdHash))
   DbPre.Epg_data.BindInt64(2, int64(h_ch_id))
-  DbPre.Epg_data.BindInt64(3, pr.Start.Unix())
-  DbPre.Epg_data.BindInt64(4, pr.Stop.Unix())
+  DbPre.Epg_data.BindInt64(3, int64(*pr.Start))
+  DbPre.Epg_data.BindInt64(4, int64(*pr.Stop))
   DbPre.Epg_data.BindInt64(5, int64(h_title))
   DbPre.Epg_data.BindInt64(6, int64(h_desc))
   DbPre.Epg_data.BindInt64(7, int64(h_icon))

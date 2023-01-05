@@ -27,13 +27,13 @@ func getStdErr() io.Writer {
 }
 
 func InitLogger(msg1, msg2 string, stdErr bool) {
-	outFunc := getStdOut
+	stdOutFunc := getStdOut
 	if stdErr {
-		outFunc = getStdErr
+		stdOutFunc = getStdErr
 	}
 
 	log.Logger = log.Output(zerolog.ConsoleWriter{
-		Out:        outFunc(),
+		Out:        stdOutFunc(),
 		TimeFormat: "2006-01-02T15:04:05",
 	})
 	log.Info().Msg(msg1 + msg2)

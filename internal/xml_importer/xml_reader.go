@@ -13,10 +13,10 @@ import (
 	"github.com/klauspost/compress/gzip"
 	"github.com/rs/zerolog/log"
 
-	"ott-play-epg-converter/pkg/robbiet480/xmltv"
 	"ott-play-epg-converter/internal/config/config_v"
 	"ott-play-epg-converter/internal/helpers"
 	"ott-play-epg-converter/internal/json_exporter"
+	"ott-play-epg-converter/internal/xml_importer/xmltv_min"
 )
 
 var (
@@ -102,14 +102,14 @@ func ProcessXml(db *sqlite.Conn, provData *config_v.ProvRecord) error {
     case xml.StartElement:
       if v.Name.Local == "channel" {
         // XML: Read element <channel>
-        tvC := xmltv.Channel{}
+        tvC := xmltv_min.Channel{}
         if err := d.DecodeElement(&tvC, &v); err != nil {
           log.Err(err).Send()
         }
         NewChannelCache(&tvC, provData) 
       } else if v.Name.Local == "programme" {
         // XML: Read element <programme>
-        tvP := xmltv.Programme{}
+        tvP := xmltv_min.Prog{}
         if err = d.DecodeElement(&tvP, &v); err != nil {
           log.Err(err).Send()
         }
