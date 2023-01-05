@@ -6,7 +6,7 @@ import (
 	"github.com/rs/zerolog/log"
 
 	"ott-play-epg-converter/pkg/robbiet480/xmltv"
-	"ott-play-epg-converter/internal/app_config"
+	"ott-play-epg-converter/internal/config/config_v"
 	"ott-play-epg-converter/internal/helpers"
 )
 
@@ -16,7 +16,7 @@ var (
 
 // XML2SQL: Кешируем запись <channel>
 // Берем Id, DisplayName[*] и Icon[0]
-func NewChannelCache(ch *xmltv.Channel, prov *app_config.ProvRecord) {
+func NewChannelCache(ch *xmltv.Channel, prov *config_v.ProvRecord) {
   // 2SQL: dedup Id канала
   h_id := helpers.HashSting32i(ch.ID)
   InsertKV(DbPre.Ch_ids, h_id, ch.ID)
@@ -45,7 +45,7 @@ func NewChannelCache(ch *xmltv.Channel, prov *app_config.ProvRecord) {
 
 // XML2SQL: Кешируем запись <programme>
 // Берем только Title[0] и Desc[0]
-func NewProgCache(pr *xmltv.Programme, prov *app_config.ProvRecord) {
+func NewProgCache(pr *xmltv.Programme, prov *config_v.ProvRecord) {
   // Проверки
   if len(pr.Titles) == 0 || pr.Start == nil || pr.Stop == nil {
     log.Warn().Msgf("[%s] bad programme record", pr.Channel)

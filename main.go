@@ -2,15 +2,12 @@ package main
 
 import (
 	"os"
-  "io"
 	"time"
-  "runtime"
 
-  "github.com/mattn/go-colorable"
-	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
 
-	"ott-play-epg-converter/internal/app_config"
+	"ott-play-epg-converter/internal/config"
+	"ott-play-epg-converter/internal/config/config_v"
 	"ott-play-epg-converter/internal/helpers"
 	"ott-play-epg-converter/internal/json_exporter"
 	"ott-play-epg-converter/internal/xml_importer"
@@ -20,33 +17,18 @@ import (
 var depl_ver = "[devel]"
 
 func main() {
-  var sOut io.Writer
-
-  // Фикс цветной консоли для Windows
-  if runtime.GOOS == "windows" { sOut = colorable.NewColorableStdout()
-  } else { sOut = os.Stdout }
-  //zerolog.TimeFieldFormat = zerolog.TimeFormatUnix
-  log.Logger = log.Output(zerolog.ConsoleWriter{Out: sOut, TimeFormat: "2006-01-02T15:04:05"})
-
   tstart := time.Now()
-  app_config.ReadArgs()
+  config.ReadArgs()
 
-  // Если вывод в tar и stdout, то логи пишем в StdErr
-  if app_config.Args.Tar == "-" {
-    if runtime.GOOS == "windows" { sOut = colorable.NewColorableStderr()
-    } else { sOut = os.Stderr }
-    log.Logger = log.Output(zerolog.ConsoleWriter{Out: sOut, TimeFormat: "2006-01-02T15:04:05"})
-  }
-
-  log.Info().Msg("EPG converter for OTT-play FOSS " + depl_ver)
-  log.Info().Msg("  git@prog4food (c) 2o22\n")
+  helpers.InitLogger("EPG converter for OTT-play FOSS ", depl_ver, (config_v.Args.Tar == "-") )
   if len(os.Args) == 1 {
     // Запустили без аргументов
     log.Info().Msg("Run with -h for help")
     return
   }
-  app_config.ReadConfigs()
-  if len(app_config.Args.EpgSources) == 0 {
+
+  config.ReadConfigs()
+  if len(config_v.Args.EpgSources) == 0 {
     // Нечего обрабатывать
     log.Error().Msg("No sources, check config file and arguments")
     return
@@ -65,7 +47,7 @@ func main() {
   json_exporter.SetTarOutput()
  
   // Processing EPG XMLs
-  provConf := app_config.Args.EpgSources
+  provConf := config_v.Args.EpgSources
   for i := 0; i < len(provConf); i++ {
     // Prepare provider hash
     provConf[i].IdHash = helpers.HashSting32(provConf[i].Id)

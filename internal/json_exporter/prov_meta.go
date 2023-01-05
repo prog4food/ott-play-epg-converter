@@ -7,7 +7,7 @@ import (
 
 	"github.com/rs/zerolog/log"
 
-	"ott-play-epg-converter/internal/app_config"
+	"ott-play-epg-converter/internal/config/config_v"
 )
 
 const providers_file = "providers.json"
@@ -41,7 +41,7 @@ func ProvList_Load() {
 }
 
 // Обновление записи о провайдере
-func ProvList_Update(p *app_config.ProvRecord, t uint64) {
+func ProvList_Update(p *config_v.ProvRecord, t uint64) {
   val, ok := prov_list[p.Id]
   if !ok {
     val = &provMetaShort{

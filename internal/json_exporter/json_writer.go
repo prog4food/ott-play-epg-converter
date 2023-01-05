@@ -9,10 +9,10 @@ import (
 	"unsafe"
 
 	"crawshaw.io/sqlite"
+	"github.com/klauspost/compress/gzip"
 	"github.com/rs/zerolog/log"
-  "github.com/klauspost/compress/gzip"
 
-	"ott-play-epg-converter/internal/app_config"
+	"ott-play-epg-converter/internal/config/config_v"
 	"ott-play-epg-converter/internal/helpers"
 )
 
@@ -30,10 +30,10 @@ type ChList map[uint32]uint64
 
 func SetTarOutput() {
   var err error
-  if app_config.Args.Tar == "" {          //  TAR: No
+  if config_v.Args.Tar == "" {          //  TAR: No
     return
   }
-  _conf := app_config.Args
+  _conf := config_v.Args
   // Куда выводить
   if _conf.Tar == "-" {  // TAR: StdOut
     tar_file = os.Stdout
@@ -65,7 +65,7 @@ func CloseTarOutput() {
   }
 }
 
-func ProcessDB(db *sqlite.Conn, prov *app_config.ProvRecord) bool {
+func ProcessDB(db *sqlite.Conn, prov *config_v.ProvRecord) bool {
   if tar_file != nil {
     var err error
     var tar_dir *tar.Header
@@ -113,7 +113,7 @@ func epgJson2File(prname string, ch_hash uint32, top_time_ch uint64, f *bytes.Bu
   return retn
 }
 
-func EpgGenerate(db *sqlite.Conn, prov *app_config.ProvRecord) ChList {
+func EpgGenerate(db *sqlite.Conn, prov *config_v.ProvRecord) ChList {
   provEpgPath := prov.Id + path_sep + "epg" + path_sep
 
   _, err := os.Stat(provEpgPath); if os.IsNotExist(err) {
@@ -199,7 +199,7 @@ func EpgGenerate(db *sqlite.Conn, prov *app_config.ProvRecord) ChList {
   return ch_map
 }
 
-func chListMeta(f *bytes.Buffer, prov *app_config.ProvRecord) {
+func chListMeta(f *bytes.Buffer, prov *config_v.ProvRecord) {
   ch_meta := &provMeta{}
   ch_meta.Id = &prov.Id
   ch_meta.LastEpg, ch_meta.LastUpd = prov.LastEpg, prov.LastUpd
@@ -239,7 +239,7 @@ func chListPush(_ch_id uint32, _ch_names uint32, f *bytes.Buffer, rec *ChListDat
   return false
 }
 
-func ChListGenerate(db *sqlite.Conn, prov *app_config.ProvRecord, ch_map ChList) error {
+func ChListGenerate(db *sqlite.Conn, prov *config_v.ProvRecord, ch_map ChList) error {
   log.Info().Msgf("[%s] creating channels list...", prov.Id)
   channelsFile := prov.Id + path_sep + "channels.json"
 

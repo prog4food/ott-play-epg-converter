@@ -14,7 +14,7 @@ import (
 	"github.com/rs/zerolog/log"
 
 	"ott-play-epg-converter/pkg/robbiet480/xmltv"
-	"ott-play-epg-converter/internal/app_config"
+	"ott-play-epg-converter/internal/config/config_v"
 	"ott-play-epg-converter/internal/helpers"
 	"ott-play-epg-converter/internal/json_exporter"
 )
@@ -34,7 +34,7 @@ func isGZip(in_reader *bufio.Reader) (*gzip.Reader, error) {
 }
 
 
-func ProcessXml(db *sqlite.Conn, provData *app_config.ProvRecord) error {
+func ProcessXml(db *sqlite.Conn, provData *config_v.ProvRecord) error {
   if len(provData.Urls) == 0 {
     return errEmptyXmlTvSources
   }

@@ -8,7 +8,7 @@ import (
 	"crawshaw.io/sqlite"
 	"crawshaw.io/sqlite/sqlitex"
 
-	"ott-play-epg-converter/internal/app_config"
+	"ott-play-epg-converter/internal/config/config_v"
 	"ott-play-epg-converter/internal/helpers"
 )
 
@@ -60,7 +60,7 @@ func AttachEPG() *sqlite.Conn {
   var db *sqlite.Conn
 
   _db_name_epg := db_name_epg
-  if app_config.Args.MemDb {
+  if config_v.Args.MemDb {
     _db_name_epg = ":memory:"
   } else {
     f, err := os.Create(_db_name_epg)

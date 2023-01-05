@@ -17,7 +17,7 @@ var (
 	_ easyjson.Marshaler
 )
 
-func easyjson6a975c40DecodeOttPlayEpgConverterLibJsonExporter(in *jlexer.Lexer, out *EpgRecord) {
+func easyjson6a975c40DecodeOttPlayEpgConverterInternalJsonExporter(in *jlexer.Lexer, out *EpgRecord) {
 	isTopLevel := in.IsStart()
 	if in.IsNull() {
 		if isTopLevel {
@@ -56,7 +56,7 @@ func easyjson6a975c40DecodeOttPlayEpgConverterLibJsonExporter(in *jlexer.Lexer, 
 		in.Consumed()
 	}
 }
-func easyjson6a975c40EncodeOttPlayEpgConverterLibJsonExporter(out *jwriter.Writer, in EpgRecord) {
+func easyjson6a975c40EncodeOttPlayEpgConverterInternalJsonExporter(out *jwriter.Writer, in EpgRecord) {
 	out.RawByte('{')
 	first := true
 	_ = first
@@ -91,27 +91,27 @@ func easyjson6a975c40EncodeOttPlayEpgConverterLibJsonExporter(out *jwriter.Write
 // MarshalJSON supports json.Marshaler interface
 func (v EpgRecord) MarshalJSON() ([]byte, error) {
 	w := jwriter.Writer{}
-	easyjson6a975c40EncodeOttPlayEpgConverterLibJsonExporter(&w, v)
+	easyjson6a975c40EncodeOttPlayEpgConverterInternalJsonExporter(&w, v)
 	return w.Buffer.BuildBytes(), w.Error
 }
 
 // MarshalEasyJSON supports easyjson.Marshaler interface
 func (v EpgRecord) MarshalEasyJSON(w *jwriter.Writer) {
-	easyjson6a975c40EncodeOttPlayEpgConverterLibJsonExporter(w, v)
+	easyjson6a975c40EncodeOttPlayEpgConverterInternalJsonExporter(w, v)
 }
 
 // UnmarshalJSON supports json.Unmarshaler interface
 func (v *EpgRecord) UnmarshalJSON(data []byte) error {
 	r := jlexer.Lexer{Data: data}
-	easyjson6a975c40DecodeOttPlayEpgConverterLibJsonExporter(&r, v)
+	easyjson6a975c40DecodeOttPlayEpgConverterInternalJsonExporter(&r, v)
 	return r.Error()
 }
 
 // UnmarshalEasyJSON supports easyjson.Unmarshaler interface
 func (v *EpgRecord) UnmarshalEasyJSON(l *jlexer.Lexer) {
-	easyjson6a975c40DecodeOttPlayEpgConverterLibJsonExporter(l, v)
+	easyjson6a975c40DecodeOttPlayEpgConverterInternalJsonExporter(l, v)
 }
-func easyjson6a975c40DecodeOttPlayEpgConverterLibJsonExporter1(in *jlexer.Lexer, out *EpgData) {
+func easyjson6a975c40DecodeOttPlayEpgConverterInternalJsonExporter1(in *jlexer.Lexer, out *EpgData) {
 	isTopLevel := in.IsStart()
 	if in.IsNull() {
 		if isTopLevel {
@@ -163,7 +163,7 @@ func easyjson6a975c40DecodeOttPlayEpgConverterLibJsonExporter1(in *jlexer.Lexer,
 		in.Consumed()
 	}
 }
-func easyjson6a975c40EncodeOttPlayEpgConverterLibJsonExporter1(out *jwriter.Writer, in EpgData) {
+func easyjson6a975c40EncodeOttPlayEpgConverterInternalJsonExporter1(out *jwriter.Writer, in EpgData) {
 	out.RawByte('{')
 	first := true
 	_ = first
@@ -189,27 +189,27 @@ func easyjson6a975c40EncodeOttPlayEpgConverterLibJsonExporter1(out *jwriter.Writ
 // MarshalJSON supports json.Marshaler interface
 func (v EpgData) MarshalJSON() ([]byte, error) {
 	w := jwriter.Writer{}
-	easyjson6a975c40EncodeOttPlayEpgConverterLibJsonExporter1(&w, v)
+	easyjson6a975c40EncodeOttPlayEpgConverterInternalJsonExporter1(&w, v)
 	return w.Buffer.BuildBytes(), w.Error
 }
 
 // MarshalEasyJSON supports easyjson.Marshaler interface
 func (v EpgData) MarshalEasyJSON(w *jwriter.Writer) {
-	easyjson6a975c40EncodeOttPlayEpgConverterLibJsonExporter1(w, v)
+	easyjson6a975c40EncodeOttPlayEpgConverterInternalJsonExporter1(w, v)
 }
 
 // UnmarshalJSON supports json.Unmarshaler interface
 func (v *EpgData) UnmarshalJSON(data []byte) error {
 	r := jlexer.Lexer{Data: data}
-	easyjson6a975c40DecodeOttPlayEpgConverterLibJsonExporter1(&r, v)
+	easyjson6a975c40DecodeOttPlayEpgConverterInternalJsonExporter1(&r, v)
 	return r.Error()
 }
 
 // UnmarshalEasyJSON supports easyjson.Unmarshaler interface
 func (v *EpgData) UnmarshalEasyJSON(l *jlexer.Lexer) {
-	easyjson6a975c40DecodeOttPlayEpgConverterLibJsonExporter1(l, v)
+	easyjson6a975c40DecodeOttPlayEpgConverterInternalJsonExporter1(l, v)
 }
-func easyjson6a975c40DecodeOttPlayEpgConverterLibJsonExporter2(in *jlexer.Lexer, out *ChListData) {
+func easyjson6a975c40DecodeOttPlayEpgConverterInternalJsonExporter2(in *jlexer.Lexer, out *ChListData) {
 	isTopLevel := in.IsStart()
 	if in.IsNull() {
 		in.Skip()
@@ -245,7 +245,7 @@ func easyjson6a975c40DecodeOttPlayEpgConverterLibJsonExporter2(in *jlexer.Lexer,
 		in.Consumed()
 	}
 }
-func easyjson6a975c40EncodeOttPlayEpgConverterLibJsonExporter2(out *jwriter.Writer, in ChListData) {
+func easyjson6a975c40EncodeOttPlayEpgConverterInternalJsonExporter2(out *jwriter.Writer, in ChListData) {
 	if in == nil && (out.Flags&jwriter.NilSliceAsEmpty) == 0 {
 		out.RawString("null")
 	} else {
@@ -267,23 +267,23 @@ func easyjson6a975c40EncodeOttPlayEpgConverterLibJsonExporter2(out *jwriter.Writ
 // MarshalJSON supports json.Marshaler interface
 func (v ChListData) MarshalJSON() ([]byte, error) {
 	w := jwriter.Writer{}
-	easyjson6a975c40EncodeOttPlayEpgConverterLibJsonExporter2(&w, v)
+	easyjson6a975c40EncodeOttPlayEpgConverterInternalJsonExporter2(&w, v)
 	return w.Buffer.BuildBytes(), w.Error
 }
 
 // MarshalEasyJSON supports easyjson.Marshaler interface
 func (v ChListData) MarshalEasyJSON(w *jwriter.Writer) {
-	easyjson6a975c40EncodeOttPlayEpgConverterLibJsonExporter2(w, v)
+	easyjson6a975c40EncodeOttPlayEpgConverterInternalJsonExporter2(w, v)
 }
 
 // UnmarshalJSON supports json.Unmarshaler interface
 func (v *ChListData) UnmarshalJSON(data []byte) error {
 	r := jlexer.Lexer{Data: data}
-	easyjson6a975c40DecodeOttPlayEpgConverterLibJsonExporter2(&r, v)
+	easyjson6a975c40DecodeOttPlayEpgConverterInternalJsonExporter2(&r, v)
 	return r.Error()
 }
 
 // UnmarshalEasyJSON supports easyjson.Unmarshaler interface
 func (v *ChListData) UnmarshalEasyJSON(l *jlexer.Lexer) {
-	easyjson6a975c40DecodeOttPlayEpgConverterLibJsonExporter2(l, v)
+	easyjson6a975c40DecodeOttPlayEpgConverterInternalJsonExporter2(l, v)
 }
