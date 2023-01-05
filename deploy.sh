@@ -1,5 +1,5 @@
 #!/bin/sh
-GO_URL="https://go.dev/dl/go1.18.3.linux-amd64.tar.gz"
+GO_URL="https://go.dev/dl/go1.19.4.linux-amd64.tar.gz"
 BIN_NAME="ofoss-epg-conv"
 BIN_DIR="build"
 
@@ -25,7 +25,7 @@ export PATH=${GOROOT}/bin:$GOBIN:$PATH
 }
 
 go_compile() {
-  echo "[.] Compiling for ${1}:${2}..."
+  echo "[.] Compiling for ${1}:${5}..."
   FN="${BIN_DIR}/${BIN_NAME}_${1}_${5}"
   GOOS=$1 GOARCH=$2 CC=$3 go build -ldflags "-s -w -X main.depl_ver=$DEPL_VER" $4 -o "${FN}_${DEPL_VER}${6}" && \
    gzip -c "${FN}_${DEPL_VER}${6}" > "${FN}.gz" && \

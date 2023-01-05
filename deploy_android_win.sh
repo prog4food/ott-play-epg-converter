@@ -2,10 +2,10 @@
 BIN_NAME="ofoss-epg-conv"
 BIN_DIR="build"
 
-PATH=`cygpath $ANDROID_SDK_ROOT`/ndk/25.0.8775105/toolchains/llvm/prebuilt/windows-x86_64/bin:$PATH
+PATH=`cygpath $ANDROID_SDK_ROOT`/ndk/latest/toolchains/llvm/prebuilt/windows-x86_64/bin:$PATH
 
 go_compile() {
-  echo "[.] Compiling for ${1}:${2}..."
+  echo "[.] Compiling for ${1}:${5}..."
   FN="${BIN_DIR}/${BIN_NAME}_${1}_${5}"
   GOOS=$1 GOARCH=$2 CC=$3 go build -ldflags "-s -w -X main.depl_ver=$DEPL_VER" $4 -o "${FN}_${DEPL_VER}${6}" && \
    gzip -c "${FN}_${DEPL_VER}${6}" > "${FN}.gz" && \
