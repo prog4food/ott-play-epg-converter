@@ -17,20 +17,40 @@ import (
 // Обработчик аргументов
 func ReadConfigs() {
 	var err error
-	for i := 0; i < len(config_files); i++ {
+	var i 	int
+
+	for i = range config_files {
 		err = processConfigArg(config_files[i])
 		if err != nil {
-			log.Err(err).Send()
+			log.Err(err).Msgf("config: file error - %s", config_files[i])
 		}
 	}
+
+	for i = range config_raw {
+		err = processProviderConfigArg(config_raw[i])
+		if err != nil {
+			log.Err(err).Msgf("config: raw error - %s", config_raw[i])
+		}
+	}	
 }
+
+// Разбирает конфиг провайдера из аргумента
+func processProviderConfigArg(conf_data []byte) error {
+	var provCfg = config_v.ProvRecord{}	
+	var err = hjson.Unmarshal(conf_data, &provCfg); if err != nil {
+		return err
+	}
+	config_v.Args.EpgSources = append(config_v.Args.EpgSources, &provCfg)
+	return nil
+}
+
 
 // Читает один конфиг файл
 func processConfigArg(conf_val string) error {
 	var (
 		conf_data []byte
 		err       error
-		_config   []*config_v.ProvRecord
+		provCfgs   []*config_v.ProvRecord
 	)
 	// Обработка доп. параметров
 	conFilter := strings.Split(conf_val, ",")
@@ -40,7 +60,7 @@ func processConfigArg(conf_val string) error {
 	if conf, is_cached := config_cache[fname_h]; is_cached {
     // Конфиг в кеше
 		log.Debug().Msgf("Cached config: %s", fname)
-		_config = conf
+		provCfgs = conf
 	} else { 
     // Читаем конфиг
 		log.Debug().Msgf("Load config: %s", fname)
@@ -66,33 +86,33 @@ func processConfigArg(conf_val string) error {
 			return err
 		}
 
-		_config = []*config_v.ProvRecord{}
-		if err = hjson.Unmarshal(conf_data, &_config); err != nil {
+		provCfgs = []*config_v.ProvRecord{}
+		if err = hjson.Unmarshal(conf_data, &provCfgs); err != nil {
 			return err
 		}
-		config_cache[fname_h] = _config
+		config_cache[fname_h] = provCfgs
 	}
 
 	sub_args_len := len(conFilter)
-	var _el *config_v.ProvRecord
-	var i int
+	var provCfg *config_v.ProvRecord
 	if sub_args_len > 1 {
 		// Кофиг с фильтром
 		log.Debug().Msgf("  filter by: %v", conFilter[1:])
 		
+		var i int
 		conf_loop:
-		for _, _el = range _config {
+		for _, provCfg = range provCfgs {
 			for i = 1; i < sub_args_len; i++ {
-				if _el.Id == conFilter[i] {
-					config_v.Args.EpgSources = append(config_v.Args.EpgSources, _el)
+				if provCfg.Id == conFilter[i] {
+					config_v.Args.EpgSources = append(config_v.Args.EpgSources, provCfg)
 					continue conf_loop
 				}
 			}
 		}
 	} else {	
 		// Конфиг без фильтра
-		for _, _el = range _config {
-			config_v.Args.EpgSources = append(config_v.Args.EpgSources, _el)
+		for _, provCfg = range provCfgs {
+			config_v.Args.EpgSources = append(config_v.Args.EpgSources, provCfg)
 		}
 	}
 	return nil

@@ -15,6 +15,9 @@
 	// Чтение из файла по ссылке (добавится в url-hashes)
 	{ id:"it999u", xmltv: [ "https://epg.it999.ru/epg.xml.gz" ] }
 
+	// Конечно поддерживается классический json
+	{	"id":"it999u2", "xmltv": [ "https://epg.it999.ru/epg.xml.gz" ] },
+
 	// Чтение из файла, и запись в url-hashes ссылки	
 	{ id:"lightiptv", xmltv: [ "lightiptv.xml.gz", "https://epg.lightiptv.cc/epg.xml.gz" ] }
 
